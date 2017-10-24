@@ -76,7 +76,7 @@ mbedtls/library/x509_csr.c
 mbedtls/library/x509write_crt.c
 mbedtls/library/x509write_csr.c
 
-mbedtls/library/timing.c
+port/timing.c
 mbedtls/library/x509_crt.c
 port/entropy_poll.c
 ''')
