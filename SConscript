@@ -72,7 +72,7 @@ mbedtls/library/x509write_csr.c
 mbedtls/library/x509_crt.c
 mbedtls/library/entropy_poll.c
 mbedtls/library/timing.c
-
+timing_alt.c
 tls_net.c
 
 ''')
