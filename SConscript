@@ -70,13 +70,15 @@ mbedtls/library/x509_csr.c
 mbedtls/library/x509write_crt.c
 mbedtls/library/x509write_csr.c
 mbedtls/library/x509_crt.c
+mbedtls/library/entropy_poll.c
+mbedtls/library/timing.c
 
-port/timing.c
-port/entropy_poll.c
 tls_net.c
 
 ''')
 
+
+# port/timing.c
 # mbedtls/library/net_sockets.c
 
 CPPPATH = [
