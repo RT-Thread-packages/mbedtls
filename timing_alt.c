@@ -41,14 +41,12 @@
 #include <signal.h>
 #include <time.h>
 
+extern int gettimeofday(struct timeval *tp, void *ignore);
+
 struct _hr_time
 {
     struct timeval start;
 };
-
-#if !defined(HAVE_HARDCLOCK)
-
-#define HAVE_HARDCLOCK
 
 static int hardclock_init = 0;
 static struct timeval tv_init;
@@ -67,7 +65,6 @@ unsigned long mbedtls_timing_hardclock( void )
     return( ( tv_cur.tv_sec  - tv_init.tv_sec  ) * 1000000
           + ( tv_cur.tv_usec - tv_init.tv_usec ) );
 }
-#endif /* !HAVE_HARDCLOCK */
 
 volatile int mbedtls_timing_alarmed = 0;
 
@@ -101,11 +98,6 @@ static void sighandler( int signum )
 unsigned int alarm(unsigned int seconds)
 {
 	return 0;
-}
-
-int gettimeofday(struct timeval *tp, void *ignore)
-{
-	return rt_tick_get();
 }
 
 void mbedtls_set_alarm( int seconds )
