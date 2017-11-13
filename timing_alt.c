@@ -41,8 +41,6 @@
 #include <signal.h>
 #include <time.h>
 
-extern int gettimeofday(struct timeval *tp, void *ignore);
-
 struct _hr_time
 {
     struct timeval start;
