@@ -34,7 +34,7 @@
 
 #if defined(MBEDTLS_TIMING_C)
 
-#include "mbedtls/timing.h"
+#include "timing_alt.h"
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
