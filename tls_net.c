@@ -644,7 +644,6 @@ void mbedtls_net_free( mbedtls_net_context *ctx )
     if( ctx->fd == -1 )
         return;
 
-    shutdown( ctx->fd, 2 );
     close( ctx->fd );
     ctx->fd = -1;
 }
