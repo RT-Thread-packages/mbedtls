@@ -74,10 +74,14 @@ mbedtls/library/entropy_poll.c
 mbedtls/library/timing.c
 timing_alt.c
 tls_net.c
-
+tls_hardware.c
+tls_certificate.c
+tls_client.c
 ''')
 
-
+if GetDepend(['PKG_USING_MBEDTLS_EXAMPLE']):
+    src += Glob('tls_app_test.c')
+    
 # port/timing.c
 # mbedtls/library/net_sockets.c
 
