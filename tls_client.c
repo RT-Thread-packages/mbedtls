@@ -33,54 +33,54 @@
  
 int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLen)
 {
-	int ret = 0;
+    int ret = 0;
 
-	mbedtls_net_init(&session->server_fd);
-	mbedtls_ssl_init(&session->ssl);
-	mbedtls_ssl_config_init(&session->conf);
+    mbedtls_net_init(&session->server_fd);
+    mbedtls_ssl_init(&session->ssl);
+    mbedtls_ssl_config_init(&session->conf);
     mbedtls_ctr_drbg_init(&session->ctr_drbg);
     mbedtls_entropy_init(&session->entropy);
-	mbedtls_x509_crt_init(&session->cacert);
-	
-	if((ret = mbedtls_ctr_drbg_seed(&session->ctr_drbg, mbedtls_entropy_func, &session->entropy,
+    mbedtls_x509_crt_init(&session->cacert);
+    
+    if((ret = mbedtls_ctr_drbg_seed(&session->ctr_drbg, mbedtls_entropy_func, &session->entropy,
                                     (unsigned char *)entropy, entropyLen)) != 0)
     {
         rt_kprintf("mbedtls_ctr_drbg_seed returned -0x%x\n", -ret);
-    	return ret;
+        return ret;
     }
-	rt_kprintf("mbedtls client struct init success...\n");
+    rt_kprintf("mbedtls client struct init success...\n");
 
-	return RT_EOK;
+    return RT_EOK;
 }
 
 int mbedtls_client_close(MbedTLSSession *session)
 {
     mbedtls_ssl_close_notify(&session->ssl);
-	mbedtls_net_free(&session->server_fd);
-	mbedtls_x509_crt_free(&session->cacert);
-	mbedtls_entropy_free(&session->entropy);
-	mbedtls_ctr_drbg_free(&session->ctr_drbg);
-	mbedtls_ssl_config_free(&session->conf);
-	mbedtls_ssl_free(&session->ssl);
+    mbedtls_net_free(&session->server_fd);
+    mbedtls_x509_crt_free(&session->cacert);
+    mbedtls_entropy_free(&session->entropy);
+    mbedtls_ctr_drbg_free(&session->ctr_drbg);
+    mbedtls_ssl_config_free(&session->conf);
+    mbedtls_ssl_free(&session->ssl);
     
     if(session && session->buffer)
         free(session->buffer);
     
-	if(session)
+    if(session)
     {   
-		free(session);
+        free(session);
         session = RT_NULL;
     }
     
-	return RT_EOK;
+    return RT_EOK;
 }
 
 int mbedtls_client_context(MbedTLSSession *session)
 {
-	int ret = 0;
+    int ret = 0;
 
-	rt_kprintf("Loading the CA root certificate success...\n");
-	
+    rt_kprintf("Loading the CA root certificate success...\n");
+    
     ret = mbedtls_x509_crt_parse(&session->cacert, (const unsigned char *)mbedtls_root_certificate,
                                  mbedtls_root_certificate_len);
     if(ret < 0)
@@ -89,14 +89,14 @@ int mbedtls_client_context(MbedTLSSession *session)
        return ret;
     }
 
-	/* Hostname set here should match CN in server certificate */
-	if((ret = mbedtls_ssl_set_hostname(&session->ssl, session->host)) != 0)
-	{
-		rt_kprintf("mbedtls_ssl_set_hostname err returned -0x%x\n", -ret);
-		return ret;
-	}
-	
-	if((ret = mbedtls_ssl_config_defaults(&session->conf,
+    /* Hostname set here should match CN in server certificate */
+    if((ret = mbedtls_ssl_set_hostname(&session->ssl, session->host)) != 0)
+    {
+        rt_kprintf("mbedtls_ssl_set_hostname err returned -0x%x\n", -ret);
+        return ret;
+    }
+    
+    if((ret = mbedtls_ssl_config_defaults(&session->conf,
                                           MBEDTLS_SSL_IS_CLIENT,
                                           MBEDTLS_SSL_TRANSPORT_STREAM,
                                           MBEDTLS_SSL_PRESET_DEFAULT)) != 0)
@@ -104,18 +104,18 @@ int mbedtls_client_context(MbedTLSSession *session)
         rt_kprintf("mbedtls_ssl_config_defaults returned -0x%x\n", -ret);
         return ret;
     }
-	
+    
     mbedtls_ssl_conf_authmode(&session->conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
     mbedtls_ssl_conf_ca_chain(&session->conf, &session->cacert, NULL);
     mbedtls_ssl_conf_rng(&session->conf, mbedtls_ctr_drbg_random, &session->ctr_drbg);
 
     if ((ret = mbedtls_ssl_setup(&session->ssl, &session->conf)) != 0)
     {
-	    rt_kprintf("mbedtls_ssl_setup returned -0x%x\n", -ret);
-	    return ret;
-	}
+        rt_kprintf("mbedtls_ssl_setup returned -0x%x\n", -ret);
+        return ret;
+    }
     rt_kprintf("mbedtls client context init success...\n");
-		
+        
     return RT_EOK;
 }
 

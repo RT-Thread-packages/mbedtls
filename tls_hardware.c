@@ -31,7 +31,7 @@
 
 static int os_get_random(unsigned char *buf, size_t len)
 {
-	int i, j;
+    int i, j;
     unsigned long tmp;
 
     for (i = 0; i < ((len + 3) & ~3) / 4; i++) {
