@@ -20,7 +20,7 @@ mbedTLS（前称PolarSSL）是一个ARM公司授权的开源的SSL库，主要�
 menuconfig path：`RT-Thread online packages/security/mbedtls/Enable a client example`   
 配置获取示例选项，配置包版本选为最新版`latest_version`，示例代码位置`mbedtls/tls_app_test.c`
 
-![](https://github.com/chenyong111/demo/blob/master/mbedtls.JPG?raw=true)
+![](./docs/image/mbedtls.jpg)
 
 ### 3.2 运行示例   
 该示例为一个简单的TLS client，与外网建立TLS连接并传输数据。   
