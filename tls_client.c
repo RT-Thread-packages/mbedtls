@@ -25,9 +25,6 @@
 #include "tls_client.h"
 #include "tls_certificate.h"
 
-#ifndef RT_USING_RTC
-#error  need to enable RTC device for Certificate verified, check your RTC device! 
-#endif 
 
 #define rt_kprintf rt_kprintf("[tls]");rt_kprintf
  
@@ -63,12 +60,18 @@ int mbedtls_client_close(MbedTLSSession *session)
     mbedtls_ssl_config_free(&session->conf);
     mbedtls_ssl_free(&session->ssl);
     
-    if(session && session->buffer)
-        free(session->buffer);
+    if(session->buffer)
+        tls_free(session->buffer);
+
+    if(session->host)
+        tls_free(session->host);
+    
+    if(session->port)
+        tls_free(session->port);
     
     if(session)
     {   
-        free(session);
+        tls_free(session);
         session = RT_NULL;
     }
     
@@ -122,18 +125,15 @@ int mbedtls_client_context(MbedTLSSession *session)
 int mbedtls_client_connect(MbedTLSSession *session)
 {
     int ret = 0;
-    char *web_port = malloc(10);
-
-    sprintf(web_port, "%d", session->port);
 
     if ((ret = mbedtls_net_connect(&session->server_fd, session->host,
-                                  web_port, MBEDTLS_NET_PROTO_TCP)) != 0)
+                                  session->port, MBEDTLS_NET_PROTO_TCP)) != 0)
     {
-        rt_kprintf("mbedtls_net_connect err returned -0x%x", -ret);
+        rt_kprintf("mbedtls_net_connect err returned -0x%x\n", -ret);
         return ret;
     }
 
-    rt_kprintf("Connected %s:%s success...\n", session->host, web_port);
+    rt_kprintf("Connected %s:%s success...\n", session->host, session->port);
 
     mbedtls_ssl_set_bio(&session->ssl, &session->server_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
 
@@ -157,9 +157,6 @@ int mbedtls_client_connect(MbedTLSSession *session)
     {
         rt_kprintf("Certificate verified success...\n");
     }
-
-    if(web_port)
-        free(web_port);
 
     return RT_EOK;
 }

@@ -31,12 +31,13 @@
 #include "tls_certificate.h"
 #include "tls_client.h"
 
-#define malloc  rt_malloc
-#define free    rt_free
+#define malloc  tls_malloc
+#define free    tls_free
 #define rt_kprintf rt_kprintf("[tls]");rt_kprintf
 
 #define MBEDTLS_WEB_SERVER  "www.howsmyssl.com"
-#define MBEDTLS_WEB_PORT    443
+#define MBEDTLS_WEB_PORT    "443"
+
 #define MBEDTLS_READ_BUFFER 1024
 
 static const char *REQUEST = "GET https://www.howsmyssl.com/a/check HTTP/1.0\r\n"
@@ -132,8 +133,8 @@ int mbedlts_client_start(void)
         return RT_ERROR;
     }
     
-    tls_session->host = MBEDTLS_WEB_SERVER;
-    tls_session->port = MBEDTLS_WEB_PORT;
+    tls_session->host = rt_strdup(MBEDTLS_WEB_SERVER);
+    tls_session->port = rt_strdup(MBEDTLS_WEB_PORT);
 
     tls_session->buffer_len = MBEDTLS_READ_BUFFER;
     tls_session->buffer = malloc(tls_session->buffer_len);
