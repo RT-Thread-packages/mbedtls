@@ -25,6 +25,11 @@
 #include "tls_client.h"
 #include "tls_certificate.h"
 
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #define rt_kprintf rt_kprintf("[tls]");rt_kprintf
  

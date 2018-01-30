@@ -27,9 +27,14 @@
 
 #include <rtthread.h>
 
-#include <mbedtls/ssl.h>
 #include "tls_certificate.h"
 #include "tls_client.h"
+
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #define malloc  tls_malloc
 #define free    tls_free

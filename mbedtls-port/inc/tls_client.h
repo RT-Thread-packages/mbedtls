@@ -27,22 +27,6 @@
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/certs.h"
 
-#include <rtthread.h>
-
-#ifdef RT_USING_PSRAM
-#include <drv_sdram.h>
-
-#define tls_malloc  sdram_malloc
-#define tls_free    sdram_free
-#define tls_realloc sdram_realloc
-#define tls_calloc  sdram_calloc
-#else
-#define tls_malloc  malloc
-#define tls_free    free
-#define tls_realloc realloc
-#define tls_calloc  calloc
-#endif
-
 typedef struct MbedTLSSession
 {
     char* host;

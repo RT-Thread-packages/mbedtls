@@ -2716,4 +2716,12 @@
 
 #include "check_config.h"
 
+/* the memory allocation method configurations */
+#include <rtthread.h>
+
+#define tls_malloc  rt_malloc
+#define tls_free    rt_free
+#define tls_realloc rt_realloc
+#define tls_calloc  rt_calloc
+
 #endif /* MBEDTLS_CONFIG_H */
