@@ -1,4 +1,5 @@
 from building import *
+import rtconfig
 Import('RTT_ROOT')
 
 cwd = GetCurrentDir()
@@ -18,7 +19,12 @@ cwd + '/mbedtls-port/inc',
 ]
 CPPPATH += [RTT_ROOT + '/include/libc']
 
-CPPDEFINES = ['MBEDTLS_CONFIG_FILE=\\"tls_config.h\\"']
+if rtconfig.CROSS_TOOL == 'gcc' :
+    CPPDEFINES = ['MBEDTLS_CONFIG_FILE=\\"tls_config.h\\"']
+elif rtconfig.CROSS_TOOL == 'keil':
+    CPPDEFINES = ['MBEDTLS_CONFIG_FILE=\\"tls_config.h\\"']
+else:
+    CPPDEFINES = []
 
 group = DefineGroup('mbedtls', src, depend = ['PKG_USING_MBEDTLS'], CPPPATH = CPPPATH, CPPDEFINES = CPPDEFINES)
 

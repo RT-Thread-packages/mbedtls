@@ -67,7 +67,7 @@ menuconfig path：`RT-Thread online packages/security/mbedtls/Enable a clie
     Fatal Error "MBEDTLS_CONFIG_FILE" expected a file name 
 
 原因：SConscript中预定义语法IAR编辑器不支持  
-解决方法：删除SConscript中预定义语法（CPPDEFINES = ['MBEDTLS_CONFIG_FILE=\\"tls_config.h\\"']），拷贝`mbedtls-port/inc/tls_config.h`内容到`mbedtls/include/mbedtls/config.h`中
+解决方法：拷贝`mbedtls-port/inc/tls_config.h`内容到`mbedtls/include/mbedtls/config.h`中
 
 ## 5、参考资料
 

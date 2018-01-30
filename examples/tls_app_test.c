@@ -38,6 +38,7 @@
 
 #define malloc  tls_malloc
 #define free    tls_free
+#define strdup  rt_strdup
 #define rt_kprintf rt_kprintf("[tls]");rt_kprintf
 
 #define MBEDTLS_WEB_SERVER  "www.howsmyssl.com"
@@ -138,8 +139,8 @@ int mbedlts_client_start(void)
         return RT_ERROR;
     }
     
-    tls_session->host = rt_strdup(MBEDTLS_WEB_SERVER);
-    tls_session->port = rt_strdup(MBEDTLS_WEB_PORT);
+    tls_session->host = strdup(MBEDTLS_WEB_SERVER);
+    tls_session->port = strdup(MBEDTLS_WEB_PORT);
 
     tls_session->buffer_len = MBEDTLS_READ_BUFFER;
     tls_session->buffer = malloc(tls_session->buffer_len);
