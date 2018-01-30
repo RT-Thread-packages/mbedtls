@@ -39,7 +39,6 @@
 #define malloc  tls_malloc
 #define free    tls_free
 #define strdup  rt_strdup
-#define rt_kprintf rt_kprintf("[tls]");rt_kprintf
 
 #define MBEDTLS_WEB_SERVER  "www.howsmyssl.com"
 #define MBEDTLS_WEB_PORT    "443"
@@ -117,9 +116,9 @@ static void mbedlts_client_entry(void *parament)
 
         len = ret;
         for(i = 0; i<len; i++)
-            printf("%c", session->buffer[i]);
+            rt_kprintf("%c", session->buffer[i]);
     }while(1);
-    printf("\n");
+    rt_kprintf("\n");
     
 __exit:
     mbedtls_client_close(session);
