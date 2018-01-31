@@ -18,7 +18,7 @@ mbedTLS（前称PolarSSL）是一个ARM公司授权的开源的SSL库，主要�
 ### 3.1 获取示例
 
 menuconfig path：`RT-Thread online packages/security/mbedtls/Enable a client example`   
-配置获取示例选项，配置包版本选为最新版`latest_version`，示例代码位置`mbedtls/tls_app_test.c`
+配置获取示例选项，配置包版本选为最新版`latest_version`，示例代码位置`examples/tls_app_test.c`
 
 ![](./docs/image/mbedtls.jpg)
 
@@ -28,13 +28,13 @@ menuconfig path：`RT-Thread online packages/security/mbedtls/Enable a clie
 使用方式：msh cmd `tls_test`，finsh cmd `tls_test()`
 
     msh />tls_test   
-    [tls]mbedtls client struct init success...   
-    [tls]Loading the CA root certificate success...   
-    [tls]mbedtls client context init success...   
-    [tls]Connected www.howsmyssl.com:443 success...   
-    [tls]Certificate verified success...   
-    [tls]Writing HTTP request success...   
-    [tls]Getting HTTP response...   
+    mbedtls client struct init success...   
+    Loading the CA root certificate success...   
+    mbedtls client context init success...   
+    Connected www.howsmyssl.com:443 success...   
+    Certificate verified success...   
+    Writing HTTP request success...   
+    Getting HTTP response...   
     （get response data）....   
     
 
@@ -49,18 +49,25 @@ menuconfig path：`RT-Thread online packages/security/mbedtls/Enable a clie
 
 ### 4.2 证书时间错误：
 
-    [tls]verification info: ! The certificate validity has expired
-    [tls]verification info: ! The certificate validity starts in the future
+    verification info: ! The certificate validity has expired
+    verification info: ! The certificate validity starts in the future
     
 原因：TLS握手是证书验证需要时间的验证，本地时间获取有误导致   
 解决方式：检查RTC设备是否支持，检查`RT_USING_RTC`宏是否打开，校准设备时间
 
 ### 4.3 证书CN错误：
 
-    [tls]verification info: ! The certificate Common Name (CN) does not match with the expected CN
+    verification info: ! The certificate Common Name (CN) does not match with the expected CN
 
 原因：测试其他TLS网站时，若输入域名不符合证书的Common Name（CN）出现CN验证失败问题   
 解决方法：检查输入域名和证书中CN是否匹配或输入IP地址
+
+### 4.4 IAR编译错误
+
+    Fatal Error "MBEDTLS_CONFIG_FILE" expected a file name 
+
+原因：SConscript中预定义语法IAR编辑器不支持  
+解决方法：拷贝`mbedtls-port/inc/tls_config.h`内容到`mbedtls/include/mbedtls/config.h`中
 
 ## 5、参考资料
 

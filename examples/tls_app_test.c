@@ -27,16 +27,22 @@
 
 #include <rtthread.h>
 
-#include <mbedtls/ssl.h>
 #include "tls_certificate.h"
 #include "tls_client.h"
 
-#define malloc  rt_malloc
-#define free    rt_free
-#define rt_kprintf rt_kprintf("[tls]");rt_kprintf
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
+
+#define malloc  tls_malloc
+#define free    tls_free
+#define strdup  rt_strdup
 
 #define MBEDTLS_WEB_SERVER  "www.howsmyssl.com"
-#define MBEDTLS_WEB_PORT    443
+#define MBEDTLS_WEB_PORT    "443"
+
 #define MBEDTLS_READ_BUFFER 1024
 
 static const char *REQUEST = "GET https://www.howsmyssl.com/a/check HTTP/1.0\r\n"
@@ -110,9 +116,9 @@ static void mbedlts_client_entry(void *parament)
 
         len = ret;
         for(i = 0; i<len; i++)
-            printf("%c", session->buffer[i]);
+            rt_kprintf("%c", session->buffer[i]);
     }while(1);
-    printf("\n");
+    rt_kprintf("\n");
     
 __exit:
     mbedtls_client_close(session);
@@ -132,8 +138,8 @@ int mbedlts_client_start(void)
         return RT_ERROR;
     }
     
-    tls_session->host = MBEDTLS_WEB_SERVER;
-    tls_session->port = MBEDTLS_WEB_PORT;
+    tls_session->host = strdup(MBEDTLS_WEB_SERVER);
+    tls_session->port = strdup(MBEDTLS_WEB_PORT);
 
     tls_session->buffer_len = MBEDTLS_READ_BUFFER;
     tls_session->buffer = malloc(tls_session->buffer_len);

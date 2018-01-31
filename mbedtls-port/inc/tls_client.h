@@ -26,11 +26,11 @@
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/certs.h"
- 
- typedef struct MbedTLSSession
+
+typedef struct MbedTLSSession
 {
-    const char* host;
-    int port;
+    char* host;
+    char* port;
 
     unsigned char *buffer;
     size_t buffer_len;
