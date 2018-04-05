@@ -28,6 +28,9 @@
 #ifndef MBEDTLS_CONFIG_H
 #define MBEDTLS_CONFIG_H
 
+/* the memory allocation method configurations */
+#include <rtthread.h>
+
 #if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_DEPRECATE)
 #define _CRT_SECURE_NO_DEPRECATE 1
 #endif
@@ -2715,9 +2718,6 @@
 #endif
 
 #include "check_config.h"
-
-/* the memory allocation method configurations */
-#include <rtthread.h>
 
 #define tls_malloc  rt_malloc
 #define tls_free    rt_free
