@@ -21,7 +21,7 @@ CPPPATH += [RTT_ROOT + '/include/libc']
 
 if rtconfig.CROSS_TOOL == 'gcc' :
     CPPDEFINES = ['MBEDTLS_CONFIG_FILE=\\"tls_config.h\\"']
-elif rtconfig.CROSS_TOOL == 'keil':
+elif rtconfig.CROSS_TOOL == 'keil' or rtconfig.CROSS_TOOL == 'iar':
     import shutil
     shutil.copyfile("mbedtls-port/inc/tls_config.h ", "mbedtls/include/mbedtls/config.h")
     CPPDEFINES = []
