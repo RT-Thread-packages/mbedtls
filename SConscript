@@ -12,12 +12,10 @@ if GetDepend(['PKG_USING_MBEDTLS_EXAMPLE']):
     src += Glob('examples/*.c')
     
 CPPPATH = [
-cwd,
 cwd + '/mbedtls/include',
 cwd + '/mbedtls/include/mbedtls',
 cwd + '/mbedtls-port/inc',
 ]
-CPPPATH += [RTT_ROOT + '/include/libc']
 
 if rtconfig.CROSS_TOOL == 'gcc' :
     CPPDEFINES = ['MBEDTLS_CONFIG_FILE=\\"tls_config.h\\"']

@@ -53,26 +53,16 @@
 #endif
 #endif /* _MSC_VER */
 
-
-
 static int wsa_init_done = 0;
 
 #elif defined(RTTHREAD_VERSION)  /* ( _WIN32 || _WIN32_WCE ) && !EFIX64 && !EFI32 */
 
-//#include <sys/types.h>
-//#include <sys/socket.h>
-//#include <netdb.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/select.h>
+#include <netdb.h>
 
 #include <rtthread.h>
-#include <lwip/sockets.h>
-#include <lwip/sys.h>
-#include <lwip/api.h>
-#include <lwip/netdb.h>
-
-#define read(fd,buf,len)        recv(fd,(char*)buf,(int) len,0)
-#define write(fd,buf,len)       send(fd,(char*)buf,(int) len,0)
-#define close(fd)               closesocket(fd)
-#define fcntl(a, b)             lwip_fcntl(a, b, 0)
 
 #define __socklen_t_defined
 
@@ -185,7 +175,7 @@ int mbedtls_net_connect( mbedtls_net_context *ctx, const char *host, const char 
             break;
         }
 
-        close( ctx->fd );
+        closesocket( ctx->fd );
         ret = MBEDTLS_ERR_NET_CONNECT_FAILED;
     }
 
@@ -232,14 +222,14 @@ int mbedtls_net_bind( mbedtls_net_context *ctx, const char *bind_ip, const char 
         if( setsockopt( ctx->fd, SOL_SOCKET, SO_REUSEADDR,
                         (const char *) &n, sizeof( n ) ) != 0 )
         {
-            close( ctx->fd );
+            closesocket( ctx->fd );
             ret = MBEDTLS_ERR_NET_SOCKET_FAILED;
             continue;
         }
 
         if( bind( ctx->fd, cur->ai_addr, MSVC_INT_CAST cur->ai_addrlen ) != 0 )
         {
-            close( ctx->fd );
+            closesocket( ctx->fd );
             ret = MBEDTLS_ERR_NET_BIND_FAILED;
             continue;
         }
@@ -249,7 +239,7 @@ int mbedtls_net_bind( mbedtls_net_context *ctx, const char *bind_ip, const char 
         {
             if( listen( ctx->fd, MBEDTLS_NET_LISTEN_BACKLOG ) != 0 )
             {
-                close( ctx->fd );
+                closesocket( ctx->fd );
                 ret = MBEDTLS_ERR_NET_LISTEN_FAILED;
                 continue;
             }
@@ -519,7 +509,7 @@ int mbedtls_net_recv( void *ctx, unsigned char *buf, size_t len )
     if( fd < 0 )
         return( MBEDTLS_ERR_NET_INVALID_CONTEXT );
 
-    ret = (int) read( fd, buf, len );
+    ret = (int) recv( fd, buf, len, 0);
 
 
     if( ret < 0 )
@@ -605,8 +595,7 @@ int mbedtls_net_send( void *ctx, const unsigned char *buf, size_t len )
     if( fd < 0 )
         return( MBEDTLS_ERR_NET_INVALID_CONTEXT );
 
-    ret = (int) write( fd, buf, len );
-
+    ret = (int) send( fd, buf, len, 0 );
 
     if( ret < 0 )
     {
@@ -644,7 +633,7 @@ void mbedtls_net_free( mbedtls_net_context *ctx )
     if( ctx->fd == -1 )
         return;
 
-    close( ctx->fd );
+    closesocket( ctx->fd );
     ctx->fd = -1;
 }
 
