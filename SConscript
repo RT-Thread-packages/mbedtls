@@ -4,7 +4,7 @@ Import('RTT_ROOT')
 
 cwd = GetCurrentDir()
 src = Glob('mbedtls/library/*.c')
-SrcRemove(src, 'net_sockets.c')
+SrcRemove(src, 'mbedtls/library/net_sockets.c')
 
 src += Glob('mbedtls-port/src/*.c')
 
