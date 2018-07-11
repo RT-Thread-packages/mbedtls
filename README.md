@@ -20,7 +20,16 @@ mbedTLS（前称PolarSSL）是一个ARM公司授权的开源的SSL库，主要�
 menuconfig path：`RT-Thread online packages/security/mbedtls/Enable a client example`   
 配置获取示例选项，配置包版本选为最新版`latest_version`，示例代码位置`examples/tls_app_test.c`
 
-![](./docs/image/mbedtls.jpg)
+```
+  RT-Thread online packages --->
+      security packages  --->
+          [*] mbedtls:An open source, portable, easy to use, readable and flexible SSL library  ---
+          [*]   Store the AES tables in ROM
+          (2)   Maximum window size used
+          (3584) Maxium fragment length in bytes
+          [ ]   Enable a mbedtls client example
+                version (latest)  --->
+```
 
 ### 3.2 运行示例   
 该示例为一个简单的TLS client，与外网建立TLS连接并传输数据。   
@@ -36,7 +45,7 @@ menuconfig path：`RT-Thread online packages/security/mbedtls/Enable a clie
     Writing HTTP request success...   
     Getting HTTP response...   
     （get response data）....   
-    
+
 
 ## 4、常见问题
 
@@ -51,7 +60,7 @@ menuconfig path：`RT-Thread online packages/security/mbedtls/Enable a clie
 
     verification info: ! The certificate validity has expired
     verification info: ! The certificate validity starts in the future
-    
+
 原因：TLS握手是证书验证需要时间的验证，本地时间获取有误导致   
 解决方式：检查RTC设备是否支持，检查`RT_USING_RTC`宏是否打开，校准设备时间
 
@@ -68,6 +77,22 @@ menuconfig path：`RT-Thread online packages/security/mbedtls/Enable a clie
 
 原因：SConscript中预定义语法IAR编辑器不支持  
 解决方法：拷贝`mbedtls-port/inc/tls_config.h`内容到`mbedtls/include/mbedtls/config.h`中
+
+### 4.5 0x7200 错误
+
+原因： 部分原因是因为 mbedTls 收到了大于缓冲区大小的数据包  
+解决方法： `menuconfig` 配置增加数据帧大小 (`Maxium fragment length in bytes`)
+
+```
+  RT-Thread online packages --->
+      security packages  --->
+          [*] mbedtls:An open source, portable, easy to use, readable and flexible SSL library  ---
+          [*]   Store the AES tables in ROM
+          (2)   Maximum window size used
+          (6144) Maxium fragment length in bytes
+          [ ]   Enable a mbedtls client example
+                version (latest)  --->
+```
 
 ## 5、参考资料
 
