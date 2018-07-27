@@ -21,7 +21,9 @@ if rtconfig.CROSS_TOOL == 'gcc' :
     CPPDEFINES = ['MBEDTLS_CONFIG_FILE=\\"tls_config.h\\"']
 elif rtconfig.CROSS_TOOL == 'keil' or rtconfig.CROSS_TOOL == 'iar':
     import shutil
-    shutil.copyfile("mbedtls-port/inc/tls_config.h ", "mbedtls/include/mbedtls/config.h")
+    cp_src = cwd + '/mbedtls-port/inc/tls_config.h'
+    cp_dst = cwd + '/mbedtls/include/mbedtls/config.h'
+    shutil.copyfile(cp_src, cp_dst)
     CPPDEFINES = []
 else:
     CPPDEFINES = []
