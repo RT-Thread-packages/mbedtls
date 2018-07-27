@@ -1799,7 +1799,10 @@
  *
  * This module provides debugging functions.
  */
+ 
+#ifdef PKG_USING_MBEDTLS_DEBUG
 #define MBEDTLS_DEBUG_C
+#endif
 
 /**
  * \def MBEDTLS_DES_C
