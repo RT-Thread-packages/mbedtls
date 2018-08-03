@@ -32,10 +32,18 @@
 #endif
 
 #define rt_kprintf rt_kprintf("[tls]");rt_kprintf
- 
+
+#if defined(MBEDTLS_DEBUG_C)
+#define DEBUG_LEVEL (10)
+#endif
+
 int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLen)
 {
     int ret = 0;
+
+#if defined(MBEDTLS_DEBUG_C)
+    mbedtls_debug_set_threshold((int)DEBUG_LEVEL);
+#endif
 
     mbedtls_net_init(&session->server_fd);
     mbedtls_ssl_init(&session->ssl);
