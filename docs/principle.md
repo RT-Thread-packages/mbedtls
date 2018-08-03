@@ -17,4 +17,8 @@ mbedTLS 建立安全通信连接需要经过以下几个步骤：
 
 ## DTLS 握手流程
 
-![DTLS 握手流程](./figures/mbeddtlsHandShake.png)
+为了避免拒绝服务攻击，DTLS采用和IKE一样的无状态 cookie 技术。当客户端发送 client hello 消息后，服务器发送 HelloVerifyRequest 消息，这个消息包含了无状态 cookie。客户端收到之后必须重传添加上了 cookie 的 clienthello。
+
+DTLS 握手流程如下图所示：
+
+![DTLS 握手流程](./figures/mbedtlsHandShakeDTLS.png)

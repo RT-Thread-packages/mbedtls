@@ -33,9 +33,9 @@ RT-Thread online packages --->
 
 选择合适的配置项后，使用 `pkgs --update` 命令下载软件包并更新用户配置。
 
-## 功能配置文件
+## 功能配置说明
 
-> mbedtls/config.h 和 ports/inc/tls_config.h
+> mbedtls 功能模块的开启与关闭定义在 mbedtls/config.h 和 ports/inc/tls_config.h 文件中
 
 `mbedtls/config.h` 是 mbedtls 源码里提供的配置文件，`ports/inc/tls_config.h` 是 RT-Thread 基于 mbedtls 源码中的配置文件进行的裁剪和适配。
 
@@ -43,11 +43,157 @@ RT-Thread online packages --->
 
 用户可以通过文件中的宏来使能或失能部分不需要使用的功能模块，从而将 mbedtls 配置到合适的尺寸。
 
-## 证书配置文件
 
-> ports/src/tls_certificate.c
+## 证书配置说明
 
-该证书文件中已经包含了大多数 CA 根证书，如果您使用的根证书不在该文件内，需要您手动添加根证书文件到 `tls_certificate.c` 文件内。
+> 证书文件存放在 ports/src/tls_certificate.c 文件中
+
+该证书文件中已经包含了大多数 CA 根证书，如果您使用的根证书不在该文件内，需要您手动添加根证书文件到 `tls_certificate.c` 文件内，参考后边的 **`添加新证书`** 章节。
+
+## 初始化 TLS 会话
+
+```c
+typedef struct MbedTLSSession
+{
+    char* host;
+    char* port;
+
+    unsigned char *buffer;               // 公用数据缓冲区
+    size_t buffer_len;                   // 缓冲区大小
+
+    mbedtls_ssl_context ssl;             // 保存 ssl 基本数据
+    mbedtls_ssl_config conf;             // 保存 ssl 配置信息
+    mbedtls_entropy_context entropy;     // 保存 ssl 熵配置
+    mbedtls_ctr_drbg_context ctr_drbg;   // 保存随机字节发生器配置
+    mbedtls_net_context server_fd;       // 保存文件描述符
+    mbedtls_x509_crt cacert;             // 保存认证信息
+} MbedTLSSession;
+```
+
+`MbedTLSSession` 用于保存建立 TLS 会话连接时的配置信息，在 TLS 上下文中传递使用。用户在使用建立 TLS 会话前，必须定义一个存储会话内容的结构体，如下所示：
+
+```c
+static MbedTLSSession *tls_session = RT_NULL;
+tls_session = (MbedTLSSession *)malloc(sizeof(MbedTLSSession));
+
+tls_session->host = strdup(MBEDTLS_WEB_SERVER);
+tls_session->port = strdup(MBEDTLS_WEB_PORT);
+tls_session->buffer_len = MBEDTLS_READ_BUFFER;
+tls_session->buffer = malloc(tls_session->buffer_len);
+```
+
+这里需要设置 SSL/TLS 服务器的 host 和 port，以及数据接收 buffer 等配置。
+
+## 初始化 SSL/TLS 客户端
+
+应用程序使用 `mbedtls_client_init` 函数初始化 TLS 客户端。
+
+初始化阶段按照 API 参数定义传入相关参数即可，主要用来初始化网络接口、证书、SSL 会话配置等 SSL 交互必须的一些配置，以及设置相关的回调函数。
+
+示例代码如下所示：
+
+```c
+char *pers = "hello_world"; // 设置随机字符串种子
+if((ret = mbedtls_client_init(tls_session, (void *)pers, strlen(pers))) != 0)
+{
+    rt_kprintf("MbedTLSClientInit err return : -0x%x\n", -ret);
+    goto __exit;
+}
+```
+
+实际调用的 mbedtls 库函数如下所示：
+
+## 初始化 SSL/TLS 客户端上下文
+
+应用程序使用 `mbedtls_client_context` 函数配置客户端上下文信息，包括证书解析、设置主机名、设置默认 SSL 配置、设置认证模式（默认 MBEDTLS_SSL_VERIFY_OPTIONAL）等。
+
+示例代码如下所示：
+
+```c
+if((ret = mbedtls_client_context(tls_session)) < 0)
+{
+    rt_kprintf("MbedTLSCLlientContext err return : -0x%x\n", -ret);
+    goto __exit;
+}
+```
+
+## 建立 SSL/TLS 连接
+
+使用 `mbedtls_client_connect` 函数为 SSL/TLS 连接建立通道。这里包含整个的握手连接过程，以及证书校验结果。
+
+示例代码如下所示：
+
+```c
+if((ret = mbedtls_client_connect(tls_session)) != 0)
+{
+    rt_kprintf("MbedTLSCLlientConnect err return : -0x%x\n", -ret);
+    goto __exit;
+}
+```
+
+## 读写数据
+
+**向 SSL/TLS 中写入数据**
+
+示例代码如下所示：
+
+static const char *REQUEST = "GET https://www.howsmyssl.com/a/check HTTP/1.0\r\n"
+    "Host: www.howsmyssl.com\r\n"
+    "User-Agent: rtthread/3.1 rtt\r\n"
+    "\r\n";
+
+```c
+while((ret = mbedtls_client_write(tls_session, (const unsigned char *)REQUEST,strlen(REQUEST))) <= 0)
+{
+    if(ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
+    {
+        rt_kprintf("mbedtls_ssl_write returned -0x%x\n", -ret);
+        goto __exit;
+    }
+}
+```
+
+**从 SSL/TLS 中读取数据**
+
+示例代码如下所示：
+
+```c
+memset(tls_session->buffer, 0x00, tls_session->buffer_len);
+ret = mbedtls_client_read(tls_session, (unsigned char *)tls_session->buffer,len);
+if(ret == MBEDTLS_ERR_SSL_WANT_READ || ret ==MBEDTLS_ERR_SSL_WANT_WRITE)
+        continue;
+
+if(ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
+    break;
+if(ret < 0)
+{
+    rt_kprintf("mbedtls_ssl_read returned -0x%x\n", -ret);
+    break;
+}
+if(ret == 0)
+{
+    rt_kprintf("connection closed\n");
+    break;
+}
+```
+
+注意，如果读写接口返回了一个错误，必须关闭连接。
+
+## 关闭 SSL/TLS 客户端连接
+
+客户端主动关闭连接或者因为异常错误关闭连接，都需要使用 `mbedtls_client_close` 关闭连接并释放资源。
+
+示例代码如下所示：
+
+```c
+mbedtls_client_close(tls_session);
+```
+
+## mbedtls 使用范式
+
+参考示例程序 `samples/tls_app_test.c`。
+
+## 添加新证书
 
 ### 根证书样式
 
@@ -81,7 +227,7 @@ HMUfpIBvFSDJ3gyICh3WZlXi/EjJKSZp4A==
 -----END CERTIFICATE-----
 ```
 
-### 如何获取根证书
+### 获取根证书
 
 - 直接向服务商索取
 
@@ -114,128 +260,46 @@ HMUfpIBvFSDJ3gyICh3WZlXi/EjJKSZp4A==
 
     ![完成根证书导出](./figures/rtthreadcer5.png)
 
-## 初始化 TLS 会话
+### 导入证书
+
+- 使用文本编辑器打开上个步骤导出的根证书文件
+- 拷贝根证书文件内容到 `ports/src/tls_certificate.c` 文件中
+- 按照下述格式进行格式修改
 
 ```c
-typedef struct MbedTLSSession
-{
-    char* host;
-    char* port;
-
-    unsigned char *buffer;               // 其它内容缓冲区
-    size_t buffer_len;                   // 缓冲区大小
-
-    mbedtls_ssl_context ssl;             // 保存 ssl 基本数据
-    mbedtls_ssl_config conf;             // 保存 ssl 配置信息
-    mbedtls_entropy_context entropy;     // 保存 ssl 熵配置
-    mbedtls_ctr_drbg_context ctr_drbg;   // 保存随机字节发生器配置
-    mbedtls_net_context server_fd;       // 保存文件描述符
-    mbedtls_x509_crt cacert;             // 保存认证信息
-} MbedTLSSession;
+#define ENTRUST_ROOT_CA                                                 \
+"-----BEGIN CERTIFICATE-----\r\n"                                       \
+"MIIEPjCCAyagAwIBAgIESlOMKDANBgkqhkiG9w0BAQsFADCBvjELMAkGA1UEBhMC\r\n"  \
+"VVMxFjAUBgNVBAoTDUVudHJ1c3QsIEluYy4xKDAmBgNVBAsTH1NlZSB3d3cuZW50\r\n"  \
+"cnVzdC5uZXQvbGVnYWwtdGVybXMxOTA3BgNVBAsTMChjKSAyMDA5IEVudHJ1c3Qs\r\n"  \
+"IEluYy4gLSBmb3IgYXV0aG9yaXplZCB1c2Ugb25seTEyMDAGA1UEAxMpRW50cnVz\r\n"  \
+"dCBSb290IENlcnRpZmljYXRpb24gQXV0aG9yaXR5IC0gRzIwHhcNMDkwNzA3MTcy\r\n"  \
+"NTU0WhcNMzAxMjA3MTc1NTU0WjCBvjELMAkGA1UEBhMCVVMxFjAUBgNVBAoTDUVu\r\n"  \
+"dHJ1c3QsIEluYy4xKDAmBgNVBAsTH1NlZSB3d3cuZW50cnVzdC5uZXQvbGVnYWwt\r\n"  \
+"dGVybXMxOTA3BgNVBAsTMChjKSAyMDA5IEVudHJ1c3QsIEluYy4gLSBmb3IgYXV0\r\n"  \
+"aG9yaXplZCB1c2Ugb25seTEyMDAGA1UEAxMpRW50cnVzdCBSb290IENlcnRpZmlj\r\n"  \
+"YXRpb24gQXV0aG9yaXR5IC0gRzIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\r\n"  \
+"AoIBAQC6hLZy254Ma+KZ6TABp3bqMriVQRrJ2mFOWHLP/vaCeb9zYQYKpSfYs1/T\r\n"  \
+"RU4cctZOMvJyig/3gxnQaoCAAEUesMfnmr8SVycco2gvCoe9amsOXmXzHHfV1IWN\r\n"  \
+"cCG0szLni6LVhjkCsbjSR87kyUnEO6fe+1R9V77w6G7CebI6C1XiUJgWMhNcL3hW\r\n"  \
+"wcKUs/Ja5CeanyTXxuzQmyWC48zCxEXFjJd6BmsqEZ+pCm5IO2/b1BEZQvePB7/1\r\n"  \
+"U1+cPvQXLOZprE4yTGJ36rfo5bs0vBmLrpxR57d+tVOxMyLlbc9wPBr64ptntoP0\r\n"  \
+"jaWvYkxN4FisZDQSA/i2jZRjJKRxAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwIBBjAP\r\n"  \
+"BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBRqciZ60B7vfec7aVHUbI2fkBJmqzAN\r\n"  \
+"BgkqhkiG9w0BAQsFAAOCAQEAeZ8dlsa2eT8ijYfThwMEYGprmi5ZiXMRrEPR9RP/\r\n"  \
+"jTkrwPK9T3CMqS/qF8QLVJ7UG5aYMzyorWKiAHarWWluBh1+xLlEjZivEtRh2woZ\r\n"  \
+"Rkfz6/djwUAFQKXSt/S1mja/qYh2iARVBCuch38aNzx+LaUa2NSJXsq9rD1s2G2v\r\n"  \
+"1fN2D807iDginWyTmsQ9v4IbZT+mD12q/OWyFcq1rca8PdCE6OoGcrBNOTJ4vz4R\r\n"  \
+"nAuknZoh8/CbCzB428Hch0P+vGOaysXCHMnHjf87ElgI5rY97HosTvuDls4MPGmH\r\n"  \
+"VHOkc8KT/1EQrBVUAdj8BbGJoX90g5pJ19xOe4pIb4tF9g==\r\n"                  \
+"-----END CERTIFICATE-----\r\n"
 ```
 
-`MbedTLSSession` 用于保存建立 TLS 会话连接时的配置信息，在 TLS 上下文中传递使用。用户在使用建立 TLS 会话前，必须定义一个存储会话内容的结构体，如下所示：
+- 添加证书到证书数组
 
 ```c
-static MbedTLSSession *tls_session = RT_NULL;
-tls_session = (MbedTLSSession *)malloc(sizeof(MbedTLSSession));
+const char mbedtls_root_certificate[] = ENTRUST_ROOT_CA;
 ```
-
-这里需要设置 SSL/TLS 服务器的 host 和 port，以及数据接收 buffer 等配置。
-
-## 初始化 TLS 客户端
-
-> int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLen);
-
-应用程序使用 `mbedtls_client_init` 函数初始化 TLS 客户端。
-
-初始化阶段按照 API 参数定义传入相关参数即可，主要用来初始化网络接口、证书、SSL 会话配置等 SSL 交互必须的一些配置，以及设置相关的回调函数。
-
-实际调用的 mbedtls 库函数如下所示：
-
-```c
-mbedtls_net_init(&session->server_fd);
-mbedtls_ssl_init(&session->ssl);
-mbedtls_ssl_config_init(&session->conf);
-mbedtls_ctr_drbg_init(&session->ctr_drbg);
-mbedtls_entropy_init(&session->entropy);
-mbedtls_x509_crt_init(&session->cacert);
-ret = mbedtls_ctr_drbg_seed(&session->ctr_drbg, mbedtls_entropy_func, 
-&session->entropy, (unsigned char *)entropy, entropyLen));
-
-
-mbedtls_ctr_drbg_seed // 可以指定熵函数。如果回调使用默认 bedtls_entropy_func 的话，可以传入一个初始的熵 seed，也可以 NULL
-```
-
-## 配置 SSL/TLS 客户端上下文
-
-> int mbedtls_client_context(MbedTLSSession *session);
-
-SSL 层配置，应用程序使用 `mbedtls_client_context` 函数配置客户端上下文信息，包括证书解析、设置主机名、设置默认 SSL 配置、设置认证模式（默认 MBEDTLS_SSL_VERIFY_OPTIONAL）等。
-
-实际调用的 mbedtls 库函数如下所示：
-
-```c
-// 解析 mbedtls_root_certificate 缓冲区中存储的根证书，并添加到链表
-ret = mbedtls_x509_crt_parse(&session->cacert,
-                             (const unsigned char *)mbedtls_root_certificate,
-                             mbedtls_root_certificate_len);
-// 设置主机名称
-ret = mbedtls_ssl_set_hostname(&session->ssl, session->host));
-// 设置 SSL 默认配置，选择 SSL 为客户端，使用 TCP
-ret = mbedtls_ssl_config_defaults(&session->conf,
-                                  MBEDTLS_SSL_IS_CLIENT,
-                                  MBEDTLS_SSL_TRANSPORT_STREAM,
-                                  MBEDTLS_SSL_PRESET_DEFAULT));
-// 设置认证模式，这里默认配置为可选，即认证失败也可以继续通讯
-mbedtls_ssl_conf_authmode(&session->conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
-// 初始化根证书链表
-mbedtls_ssl_conf_ca_chain(&session->conf, &session->cacert, NULL);
-// 配置随机数发生器
-mbedtls_ssl_conf_rng(&session->conf, mbedtls_ctr_drbg_random, &session->ctr_drbg);
-ret = mbedtls_ssl_setup(&session->ssl, &session->conf));
-```
-
-## 建立 SSL/TLS 连接
-
-> int mbedtls_client_connect(MbedTLSSession *session);
-
-使用 `mbedtls_client_connect` 函数为 SSL/TLS 连接建立通道。这里包含整个的握手连接过程，以及证书校验结果。
-
-实际调用的 mbedtls 库函数如下所示：
-
-```c
-// 创建 socket 描述符
-ret = mbedtls_net_connect(&session->server_fd, session->host,
-                          session->port, MBEDTLS_NET_PROTO_TCP));
-// 设置 socket 输入输出接口
-mbedtls_ssl_set_bio(&session->ssl, &session->server_fd,
-                    mbedtls_net_send, mbedtls_net_recv, NULL);
-// 建立握手连接，这里执行完整的 SSL/TLS 握手认证
-ret = mbedtls_ssl_handshake(&session->ssl));
-// 获取认证结果
-ret = mbedtls_ssl_get_verify_result(&session->ssl));
-mbedtls_x509_crt_verify_info((char *)session->buffer,
-                             session->buffer_len, "  ! ", ret);
-```
-
-## 读写数据
-
-> int mbedtls_client_read(MbedTLSSession *session, unsigned char *buf , size_t len);
-
-> int mbedtls_client_write(MbedTLSSession *session, const unsigned char *buf , size_t len);
-
-注意，如果读写接口返回了一个错误，必须关闭连接。
-
-## 关闭 SSL/TLS 客户端连接
-
-> int mbedtls_client_close(MbedTLSSession *session);
-
-客户端主动关闭连接或者因为异常错误关闭连接，都需要使用 `mbedtls_client_close` 关闭连接并释放资源。
-
-## mbedtls 使用范式
-
-参考示例程序 `samples/tls_app_test.c`。
 
 ## 常见问题
 

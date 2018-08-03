@@ -4,7 +4,7 @@
 
 **mbedTLS**（前身 PolarSSL）是一个由 ARM 公司开源和维护的 SSL/TLS 算法库。其使用 C 编程语言以最小的编码占用空间实现了 SSL/TLS 功能及各种加密算法，易于理解、使用、集成和扩展，方便开发人员轻松地在嵌入式产品中使用 SSL/TLS 功能。
 
-该 [mbedtls](https://github.com/RT-Thread-packages/mbedtls) 软件包是 **RT-Thread** 基于 [ARMmbed/mbedtls](https://github.com/ARMmbed/mbedtls/) 开源库的移植，有关 mbedTLS 的更多信息，请参阅 [https://tls.mbed.org](https://tls.mbed.org) 。
+该 [mbedtls](https://github.com/RT-Thread-packages/mbedtls) 软件包是 **RT-Thread** 基于 [ARMmbed/mbedtls](https://github.com/ARMmbed/mbedtls/) 开源库的移植，有关 mbedTLS 的更多信息，请参阅 [软件包详细介绍](docs/introduction.md) 。
 
 ### 1.1 目录结构
 
