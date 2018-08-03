@@ -42,12 +42,12 @@ RT-Thread online packages --->
 
 - 使用 `pkgs --update` 命令下载软件包
 
-## 3、使用 paho-mqtt
+## 3、使用 mbedtls
 
 - 如何从零开始使用，请参考 [用户手册](docs/user-guide.md)。
 - 完整的 API 文档，请参考 [API 手册](docs/api.md)。
 - 详细的示例介绍，请参考 [示例文档](docs/samples.md) 。
-- MQTT 协议工作原理，请参考 [工作原理](docs/principle.md) 。
+- mbedtls 协议工作原理，请参考 [工作原理](docs/principle.md) 。
 - 更多**详细介绍文档**位于 [`/docs`](/docs) 文件夹下，**使用软件包进行开发前请务必查看**。
 
 ## 4、参考资料
