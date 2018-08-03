@@ -2,10 +2,36 @@
 
 这里主要介绍 mbedtls 程序的基本使用流程，并针对使用过程中经常涉及到的结构体和重要 API 进行简要说明。
 
+mbedtls 的基本工作流程如下所示：
+
 - 初始化 SSL/TLS 上下文
 - 建立 SSL/TLS 握手
 - 发送、接收数据
 - 交互完成，关闭连接
+
+## menuconfig 配置说明
+
+获取 mbedtls 软件包或者修改用户配置都需要使用 `menuconfig`。需要用户打开 ENV 工具，并将目录切换到您所用的 BSP 目录，使用 `menuconfig` 命令打开配置界面。
+
+在 `RT-Thread online packages → security packages` 中选择 **mbedtls** 软件包，操作界面如下图所示：
+
+![打开 mbedtls 软件包](./figures/mbedtlsOpenPackage.png)
+
+详细的配置介绍如下所示：
+
+```shell
+RT-Thread online packages --->
+    security packages  --->
+        [*] mbedtls: An portable and flexible SSL/TLS library  ---  # 打开 mbedtls 软件包
+        [*]   Store the AES tables in ROM      # 将 AES 表存储在 ROM 中，优化内存占用
+        (2)   Maximum window size used         # 用于点乘的最大“窗口”大小（2-7，该值越小内存占用也越小）
+        (3584) Maxium fragment length in bytes # 配置数据帧大小（0x7200 错误可尝试增加该大小）
+        [*]   Enable a mbedtls client example  # 开启 mbedtls 测试例程
+        [ ]   Enable Debug log output          # 开启调试 log 输出
+              version (latest)  --->           # 选择软件包版本，默认为最新版本
+```
+
+选择合适的配置项后，使用 `pkgs --update` 命令下载软件包并更新用户配置。
 
 ## 功能配置文件
 
@@ -68,13 +94,23 @@ HMUfpIBvFSDJ3gyICh3WZlXi/EjJKSZp4A==
 
     ![获取网站根证书](./figures/rtthread.png)
 
+    - 查看证书详细信息
+
     ![查看证书详细信息](./figures/rtthreadcer1.png)
+
+    - 根证书导出向导
 
     ![导出根证书向导](./figures/rtthreadcer2.png)
 
+    - 选择导出 Base64 编码证书
+
     ![选择根证书编码格式](./figures/rtthreadcer3.png)
 
+    - 选择证书存储位置
+
     ![选择根证书存储位置](./figures/rtthreadcer4.png)
+
+    - 完成证书文件导出
 
     ![完成根证书导出](./figures/rtthreadcer5.png)
 

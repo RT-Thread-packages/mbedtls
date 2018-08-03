@@ -22,112 +22,33 @@
 
 Apache License Version 2.0 协议许可。
 
-## 2、如何使用
+## 2、获取软件包
 
-示例程序 `samples/tls_app_test.c`。
-
-### 2.1 启用软件包
+在使用的 BSP 目录下，使用 ENV 工具打开 menuconfig 来获取软件包。
 
 - 配置软件包并使能示例
 
 ```shell
 RT-Thread online packages --->
     security packages  --->
-        [*] mbedtls: An portable and flexible SSL/TLS library  ---
-        [*]   Store the AES tables in ROM
-        (2)   Maximum window size used
-        (3584) Maxium fragment length in bytes
-        [*]   Enable a mbedtls client example
-              version (latest)  --->
+        [*] mbedtls: An portable and flexible SSL/TLS library  ---  # 打开 mbedtls 软件包
+        [*]   Store the AES tables in ROM      # 将 AES 表存储在 ROM 中，优化内存占用
+        (2)   Maximum window size used         # 用于点乘的最大“窗口”大小（2-7，该值越小内存占用也越小）
+        (3584) Maxium fragment length in bytes # 配置数据帧大小（0x7200 错误可尝试增加该大小）
+        [*]   Enable a mbedtls client example  # 开启 mbedtls 测试例程
+        [ ]   Enable Debug log output          # 开启调试 log 输出
+              version (latest)  --->           # 选择软件包版本，默认为最新版本
 ```
 
 - 使用 `pkgs --update` 命令下载软件包
 
-### 2.2 运行示例
+## 3、使用 paho-mqtt
 
-该示例程序提供了一个简单的 TLS client，与支持安全连接的网站建立 TLS 连接并获取加密数据。
-
-主要流程：
-
-- client连接外网 TLS 测试网站 `www.howsmyssl.com`
-- client 和 server 握手成功
-- client 发送请求
-- server 回应请求
-- TLS 测试成功
-
-在 MSH 中使用命令 **`tls_test`** 执行示例程序，如下所示：
-
-```shell
-msh />tls_test
-mbedtls client struct init success...
-Loading the CA root certificate success...
-mbedtls client context init success...
-Connected www.howsmyssl.com:443 success...
-Certificate verified success...
-Writing HTTP request success...
-Getting HTTP response...
-（get response data）....
-```
-
-## 3、常见问题
-
-### 3.1 证书验证失败  
-
-    [tls]verification info: ! The CRL is not correctly signed by the trusted CA
-
-- 原因
-
-    mbedtls包中支持多种主流CA机构根证书，部分CA机构未支持   
-
-- 解决方法
-
-    若测试其他TLS网站证书验证失败，手动获取测试网站根证书（Root Cerificate）添加到`mbedtls/tls_cerificate.c`文件中
-
-### 3.2 证书时间错误
-
-    verification info: ! The certificate validity has expired
-    verification info: ! The certificate validity starts in the future
-
-- 原因
-
-    TLS握手是证书验证需要时间的验证，本地时间获取有误导致   
-
-- 解决方式
-
-    检查RTC设备是否支持，检查`RT_USING_RTC`宏是否打开，校准设备时间
-
-### 3.3 证书 CN 错误
-
-    verification info: ! The certificate Common Name (CN) does not match with the expected CN
-
-- 原因
-
-    测试其他TLS网站时，若输入域名不符合证书的Common Name（CN）出现CN验证失败问题   
-
-- 解决方法
-
-    检查输入域名和证书中CN是否匹配或输入IP地址
-
-### 3.4 0x7200 错误
-
-- 原因
-
-    部分原因是因为 mbedTls 收到了大于缓冲区大小的数据包  
-
-- 解决方法
-
-    `menuconfig` 配置增加数据帧大小 ( `Maxium fragment length in bytes` )
-
-```
-RT-Thread online packages --->
-    security packages  --->
-        [*] mbedtls: An portable and flexible SSL/TLS library  ---
-        [*]   Store the AES tables in ROM
-        (2)   Maximum window size used
-        (6144) Maxium fragment length in bytes
-        [*]   Enable a mbedtls client example
-              version (latest)  --->
-```
+- 如何从零开始使用，请参考 [用户手册](docs/user-guide.md)。
+- 完整的 API 文档，请参考 [API 手册](docs/api.md)。
+- 详细的示例介绍，请参考 [示例文档](docs/samples.md) 。
+- MQTT 协议工作原理，请参考 [工作原理](docs/principle.md) 。
+- 更多**详细介绍文档**位于 [`/docs`](/docs) 文件夹下，**使用软件包进行开发前请务必查看**。
 
 ## 4、参考资料
 
@@ -136,5 +57,5 @@ RT-Thread online packages --->
 
 ## 5、 联系方式 & 感谢
 
-- 维护： chenyong
+- 维护： RT-Thread 开发团队
 - 主页： https://github.com/RT-Thread-packages/mbedtls

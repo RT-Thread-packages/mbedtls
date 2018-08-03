@@ -39,16 +39,17 @@
 
     启用 mbedtls 软件包，并配置使能测试例程（Enable a mbedtls client example），如下所示：
 
-    ```shell
-    RT-Thread online packages --->
-        security packages  --->
-            [*] mbedtls: An portable and flexible SSL/TLS library  ---
-            [*]   Store the AES tables in ROM
-            (2)   Maximum window size used
-            (3584) Maxium fragment length in bytes
-            [*]   Enable a mbedtls client example
-                  version (latest)  --->
-    ```
+```shell
+RT-Thread online packages --->
+    security packages  --->
+        [*] mbedtls: An portable and flexible SSL/TLS library  ---  # 打开 mbedtls 软件包
+        [*]   Store the AES tables in ROM      # 将 AES 表存储在 ROM 中，优化内存占用
+        (2)   Maximum window size used         # 用于点乘的最大“窗口”大小（2-7，该值越小内存占用也越小）
+        (3584) Maxium fragment length in bytes # 配置数据帧大小（0x7200 错误可尝试增加该大小）
+        [*]   Enable a mbedtls client example  # 开启 mbedtls 测试例程
+        [ ]   Enable Debug log output          # 开启调试 log 输出
+              version (latest)  --->           # 选择软件包版本，默认为最新版本
+```
 
 - 使用 `pkgs --update` 命令下载软件包
 - 编译下载
