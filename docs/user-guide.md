@@ -22,6 +22,7 @@ mbedtls 的基本工作流程如下所示：
 ```shell
 RT-Thread online packages --->
     security packages  --->
+            Select Root Certificate  --->      # 选择证书文件
         [*] mbedtls: An portable and flexible SSL/TLS library  ---  # 打开 mbedtls 软件包
         [*]   Store the AES tables in ROM      # 将 AES 表存储在 ROM 中，优化内存占用
         (2)   Maximum window size used         # 用于点乘的最大“窗口”大小（2-7，该值越小内存占用也越小）
@@ -30,6 +31,9 @@ RT-Thread online packages --->
         [ ]   Enable Debug log output          # 开启调试 log 输出
               version (latest)  --->           # 选择软件包版本，默认为最新版本
 ```
+
+- `Using all default CA` 配置选项会将 `certs/default` 目录下的所有预置证书加入编译，将占用很大的内存
+- `Using user CA` 配置选项允许用户将自己需要的证书文件加入编译，需要用户将证书文件拷贝到 `certs` 根目录
 
 选择合适的配置项后，使用 `pkgs --update` 命令下载软件包并更新用户配置。
 
@@ -46,9 +50,12 @@ RT-Thread online packages --->
 
 ## 证书配置说明
 
-> 证书文件存放在 ports/src/tls_certificate.c 文件中
+- 预置的 CA 证书文件存放在 `certs/default` 目录中
+- 用户增加的 CA 证书文件存放在 `certs` 根目录中
 
-该证书文件中已经包含了大多数 CA 根证书，如果您使用的根证书不在该文件内，需要您手动添加根证书文件到 `tls_certificate.c` 文件内，参考后边的 **`添加新证书`** 章节。
+`certs/default` 目录中已经包含了大多数 CA 根证书，如果您使用的根证书不在该文件夹内，需要用户将自己的 **PEM 格式**的 CA 证书拷贝 `certs` 根目录下。（仅支持 **PEM 格式**证书，不支持 **DER 格式**证书）。
+
+该证书文件中已经包含了大多数 CA 根证书，，参考后边的 **`添加新证书`** 章节。
 
 ## 初始化 TLS 会话
 
@@ -195,13 +202,24 @@ mbedtls_client_close(tls_session);
 
 ## 添加新证书
 
+CA 证书有两种常用格式 **PEM 格式** 和 **DER** 格式，目前 RT-Thread mbedtls 仅支持 **PEM 格式** 的证书文件。
+
+- `PEM 格式证书`
+
+    **PEM 格式证书** 通常是以 **.pem** 和 **.cer** 后缀名结尾的文件。
+
+    使用文本编辑器打开后，文件内容以 `-----BEGIN CERTIFICATE-----` 开头，以 `-----END CERTIFICATE-----` 结尾。
+- `DER 格式证书`
+
+    **DER 格式证书** 是二进制文件类型。
+
 ### 根证书样式
 
-通常，根证书以 `root.cer` 的样式进行命名，双击打开证书文件（Windows系统）可以看到证书的签发机构和有效期，如下图所示：
+双击 **.cer** 后缀名结尾的 CA 文件（Windows系统）可以看到证书的签发机构和有效期，如下图所示：
 
 ![根证书信息](./figures/CA1.png)
 
-根证书文件有多种保存格式，我们需要 **`base64 编码 X.509`** 格式的证书文件。该类证书文件使用文本编辑器打后内容样式如下所示：
+**PEM 格式** 格式的证书文件内容内容样式如下所示：
 
 ```
 -----BEGIN CERTIFICATE-----
@@ -231,7 +249,7 @@ HMUfpIBvFSDJ3gyICh3WZlXi/EjJKSZp4A==
 
 - 直接向服务商索取
 
-  向服务商索取 **`base64 编码 X.509`** 格式的证书文件。
+  向服务商索取 **`base64 编码 X.509`** 编码的 **PEM 格式** 证书文件。
 
 - 从服务商网站导出
 
@@ -260,46 +278,17 @@ HMUfpIBvFSDJ3gyICh3WZlXi/EjJKSZp4A==
 
     ![完成根证书导出](./figures/rtthreadcer5.png)
 
+    完成证书导出，假设证书文件名为 **USER_ROOT_CA.cer**。
+
 ### 导入证书
 
-- 使用文本编辑器打开上个步骤导出的根证书文件
-- 拷贝根证书文件内容到 `ports/src/tls_certificate.c` 文件中
-- 按照下述格式进行格式修改
+- 使用文本编辑器打开上个步骤导出的根证书文件 **USER_ROOT_CA.cer**
+- 拷贝 **USER_ROOT_CA.cer** 文件到 `certs` 根目录
+- 使用 `scons` 命令重新编译
 
-```c
-#define ENTRUST_ROOT_CA                                                 \
-"-----BEGIN CERTIFICATE-----\r\n"                                       \
-"MIIEPjCCAyagAwIBAgIESlOMKDANBgkqhkiG9w0BAQsFADCBvjELMAkGA1UEBhMC\r\n"  \
-"VVMxFjAUBgNVBAoTDUVudHJ1c3QsIEluYy4xKDAmBgNVBAsTH1NlZSB3d3cuZW50\r\n"  \
-"cnVzdC5uZXQvbGVnYWwtdGVybXMxOTA3BgNVBAsTMChjKSAyMDA5IEVudHJ1c3Qs\r\n"  \
-"IEluYy4gLSBmb3IgYXV0aG9yaXplZCB1c2Ugb25seTEyMDAGA1UEAxMpRW50cnVz\r\n"  \
-"dCBSb290IENlcnRpZmljYXRpb24gQXV0aG9yaXR5IC0gRzIwHhcNMDkwNzA3MTcy\r\n"  \
-"NTU0WhcNMzAxMjA3MTc1NTU0WjCBvjELMAkGA1UEBhMCVVMxFjAUBgNVBAoTDUVu\r\n"  \
-"dHJ1c3QsIEluYy4xKDAmBgNVBAsTH1NlZSB3d3cuZW50cnVzdC5uZXQvbGVnYWwt\r\n"  \
-"dGVybXMxOTA3BgNVBAsTMChjKSAyMDA5IEVudHJ1c3QsIEluYy4gLSBmb3IgYXV0\r\n"  \
-"aG9yaXplZCB1c2Ugb25seTEyMDAGA1UEAxMpRW50cnVzdCBSb290IENlcnRpZmlj\r\n"  \
-"YXRpb24gQXV0aG9yaXR5IC0gRzIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\r\n"  \
-"AoIBAQC6hLZy254Ma+KZ6TABp3bqMriVQRrJ2mFOWHLP/vaCeb9zYQYKpSfYs1/T\r\n"  \
-"RU4cctZOMvJyig/3gxnQaoCAAEUesMfnmr8SVycco2gvCoe9amsOXmXzHHfV1IWN\r\n"  \
-"cCG0szLni6LVhjkCsbjSR87kyUnEO6fe+1R9V77w6G7CebI6C1XiUJgWMhNcL3hW\r\n"  \
-"wcKUs/Ja5CeanyTXxuzQmyWC48zCxEXFjJd6BmsqEZ+pCm5IO2/b1BEZQvePB7/1\r\n"  \
-"U1+cPvQXLOZprE4yTGJ36rfo5bs0vBmLrpxR57d+tVOxMyLlbc9wPBr64ptntoP0\r\n"  \
-"jaWvYkxN4FisZDQSA/i2jZRjJKRxAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwIBBjAP\r\n"  \
-"BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBRqciZ60B7vfec7aVHUbI2fkBJmqzAN\r\n"  \
-"BgkqhkiG9w0BAQsFAAOCAQEAeZ8dlsa2eT8ijYfThwMEYGprmi5ZiXMRrEPR9RP/\r\n"  \
-"jTkrwPK9T3CMqS/qF8QLVJ7UG5aYMzyorWKiAHarWWluBh1+xLlEjZivEtRh2woZ\r\n"  \
-"Rkfz6/djwUAFQKXSt/S1mja/qYh2iARVBCuch38aNzx+LaUa2NSJXsq9rD1s2G2v\r\n"  \
-"1fN2D807iDginWyTmsQ9v4IbZT+mD12q/OWyFcq1rca8PdCE6OoGcrBNOTJ4vz4R\r\n"  \
-"nAuknZoh8/CbCzB428Hch0P+vGOaysXCHMnHjf87ElgI5rY97HosTvuDls4MPGmH\r\n"  \
-"VHOkc8KT/1EQrBVUAdj8BbGJoX90g5pJ19xOe4pIb4tF9g==\r\n"                  \
-"-----END CERTIFICATE-----\r\n"
-```
+**注：**
 
-- 添加证书到证书数组
-
-```c
-const char mbedtls_root_certificate[] = ENTRUST_ROOT_CA;
-```
+`scons` 命令编译后，会自动将证书文件拷贝到 `const char mbedtls_root_certificate[]` 数组中。
 
 ## 常见问题
 
@@ -353,10 +342,11 @@ const char mbedtls_root_certificate[] = ENTRUST_ROOT_CA;
 ```shell
 RT-Thread online packages --->
     security packages  --->
+            Select Root Certificate  --->      # 选择证书文件
         [*] mbedtls: An portable and flexible SSL/TLS library  ---
         [*]   Store the AES tables in ROM
         (2)   Maximum window size used
-        (6144) Maxium fragment length in bytes
+        (6144) Maxium fragment length in bytes # 配置数据帧大小（0x7200 错误可尝试增加该大小）
         [*]   Enable a mbedtls client example
               version (latest)  --->
 ```
