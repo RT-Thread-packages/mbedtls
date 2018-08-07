@@ -42,6 +42,7 @@
 ```shell
 RT-Thread online packages --->
     security packages  --->
+            Select Root Certificate  --->      # 选择证书文件
         [*] mbedtls: An portable and flexible SSL/TLS library  ---  # 打开 mbedtls 软件包
         [*]   Store the AES tables in ROM      # 将 AES 表存储在 ROM 中，优化内存占用
         (2)   Maximum window size used         # 用于点乘的最大“窗口”大小（2-7，该值越小内存占用也越小）

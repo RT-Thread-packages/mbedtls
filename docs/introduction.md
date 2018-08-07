@@ -29,6 +29,8 @@ mbedtls
 |   LICENSE                         // 软件包许可协议
 |   README.md                       // 软件包使用说明
 |   SConscript                      // RT-Thread 默认的构建脚本
++---certs                           // certs 根目录存放用户 CA 证书
+|   +---default                     // default 目录保存着预置的 CA 证书
 +---docs
 |   +---figures                     // 文档使用图片
 |   |   api.md                      // API 使用说明

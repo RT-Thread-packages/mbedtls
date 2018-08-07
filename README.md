@@ -10,6 +10,7 @@
 
 | 名称            | 说明 |
 | ----            | ---- |
+| certs           | CA 证书存放目录 |
 | docs            | 文档目录 |
 | mbedtls         | ARM mbedtls 源码 |
 | ports           | 移植文件目录 |
@@ -31,6 +32,7 @@ Apache License Version 2.0 协议许可。
 ```shell
 RT-Thread online packages --->
     security packages  --->
+            Select Root Certificate  --->      # 选择证书文件
         [*] mbedtls: An portable and flexible SSL/TLS library  ---  # 打开 mbedtls 软件包
         [*]   Store the AES tables in ROM      # 将 AES 表存储在 ROM 中，优化内存占用
         (2)   Maximum window size used         # 用于点乘的最大“窗口”大小（2-7，该值越小内存占用也越小）
@@ -39,6 +41,22 @@ RT-Thread online packages --->
         [ ]   Enable Debug log output          # 开启调试 log 输出
               version (latest)  --->           # 选择软件包版本，默认为最新版本
 ```
+
+- 选择证书文件
+
+    ```shell
+    RT-Thread online packages --->
+        security packages  --->
+            [*] mbedtls: An portable and flexible SSL/TLS library  ---  # 打开 mbedtls 软件包
+                  Select Root Certificate  --->      # 选择证书文件
+                       [ ] Using all default CA(Use preset CA certificates. Take up more memory)
+                       [ ] Using user CA(copy your Root CA file to mbedtls package "certs" directory)
+                       [*] Using Digital Signature Trust Root CA # 测试例程需要使用的证书
+    ```
+
+    - `Using all default CA` 配置选项会将 `certs/default` 目录下的所有预置证书加入编译，将占用很大的内存
+    - `Using user CA` 配置选项允许用户将自己需要的证书文件加入编译，需要用户将证书文件拷贝到 `certs` 根目录
+    - 更多使用说明请参阅 [软件包详细介绍](docs/introduction.md)
 
 - 使用 `pkgs --update` 命令下载软件包
 
