@@ -27,7 +27,7 @@
 #include MBEDTLS_CONFIG_FILE
 #endif
 
-#if defined(RT_USING_LWIP)
+
 
 #include "tls_net.h"
 
@@ -638,4 +638,4 @@ void mbedtls_net_free( mbedtls_net_context *ctx )
     ctx->fd = -1;
 }
 
-#endif /* MBEDTLS_NET_C */
+
