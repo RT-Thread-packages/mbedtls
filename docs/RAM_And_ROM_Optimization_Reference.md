@@ -86,7 +86,7 @@ ROM(CODE + RO + RW) : 71975 bytes（70.29K）
 开发者在进行优化时，建议优先对下面列表中的配置进行优化，如果不能满足要求，再针对其他的配置进行逐项的优化。
 
 | 配置  |依赖    | 说明 | 优化建议 |
-| :---- | :---- | :---- | :---- | :---- |
+| :---- | :---- | :---- | :---- |
 | const char mbedtls_root_certificate[] | 无 | 存储根证书的常量数组。编译的时候，会将 PEM 证书添加到该数组。建议只在 `certs` 证书目录存放需要的根证书文件，否则会占用非常大的 RAM 和 ROM 空间 | 只存放需要的证书文件 |
 | MBEDTLS_SSL_CIPHERSUITES | 无 | 通过指定密码套件来节省几百字节的 ROM 和 几百字节的 RAM。这里注意需要指定服务器支持的加密套件，并为该加密套件启用相关的功能组件，关闭其他功能组件。如果只接入一个 SSL 服务器，通常这里只需要定义支持一个加密套件即可 | 仅指定根证书需要的加密套件 |
 | MBEDTLS_AES_ROM_TABLES | 无 | 将 AES 表存储在 ROM 中以节省 RAM 占用（很大程度上降低 RAM 占用） | 建议启用 |
@@ -104,7 +104,7 @@ ROM(CODE + RO + RW) : 71975 bytes（70.29K）
 这部分配置跟具体的系统和编译器相关，下表列出了在 **RT-Thread** 上需要做的配置。
 
 | 配置  |依赖   | 说明 | 优化建议 |
-| :---- | :---- | :---- | :---- | :---- |
+| :---- | :---- | :---- | :---- |
 | MBEDTLS_HAVE_ASM | 无 | 需要编译器可以处理汇编代码 | 启用 |
 | MBEDTLS_HAVE_TIME | 无 | 如果您的系统没有 time.h 和 time() 函数，请注释该配置 | 启用 |
 | MBEDTLS_HAVE_TIME_DATE | 无 | 如果您的系统没有 time.h、time()、gmtime() 或者没有正确的时钟，请注释该配置 | 启用 |
@@ -124,7 +124,7 @@ ROM(CODE + RO + RW) : 71975 bytes（70.29K）
 用户可以根据要接入的 SSL/TLS 服务器特性以及根证书使用的签名算法来选择启用哪部分的功能。启用或禁用功能组件时请注意将相关的依赖打开或禁用。
 
 | 配置  |依赖   | 说明 | 优化建议 |
-| :---- | :---- |  :---- | :---- | :---- |
+| :---- | :---- |  :---- | :---- |
 | MBEDTLS_ASN1_PARSE_C | 无  | 使能通用的 ASN1 解析器。ASN1: 一种描述数字对象的方法和标准，需要启用 | 启用 |
 | MBEDTLS_ASN1_WRITE_C | 无  | 启用通用 ASN1 编写器 | 启用 |
 | MBEDTLS_BIGNUM_C | 无 | 启用大整数库 （multi-precision integer library） | 启用 |
@@ -198,7 +198,7 @@ ROM(CODE + RO + RW) : 71975 bytes（70.29K）
 **mbedtls** 在数组 `static const int ciphersuite_preference[]` 中定义了所有支持的密码套件，如果开启支持所有的密码套件将会占用非常大的 ROM 空间。这里建议用户通过 `MBEDTLS_SSL_CIPHERSUITES` 宏来指定客户端与服务器使用具体哪种加密套件。指定加密套件后，将不需要的加密套件和依赖的功能组件全部禁用，同时禁用不需要的椭圆曲线，来最大程度上节省 ROM 空间。
 
 | 配置  |依赖    | 说明 | 优化建议 |
-| :---- | :---- | :---- | :---- | :---- |
+| :---- | :---- | :---- | :---- |
 | MBEDTLS_SSL_CIPHERSUITES | 无 | 通过指定密码套件来节省 ROM 和 几百字节的 RAM。这里注意需要指定服务器支持的加密套件，并为该加密套件启用相关的功能组件，关闭其他功能组件。如果只接入一个 SSL 服务器，通常这里只需要定义支持一个加密套件即可 | 仅指定根证书需要的加密套件 |
 | MBEDTLS_AES_C | 无 | 通过启用 AES 来支持 `*_WITH_AES_*` 类型的密码套件 | 根据需要选择 |
 | MBEDTLS_GCM_C | MBEDTLS_AES_C、MBEDTLS_CAMELLIA_C | 启用该配置来支持 `*_AES_GCM_*`、`*_CAMELLIA_GCM_*` 类型的密码套件 | 根据需要选择 |
@@ -233,7 +233,7 @@ ROM(CODE + RO + RW) : 71975 bytes（70.29K）
 用户成功选择了匹配的加密套件，并验证可以正常建立握手连接和加密通讯后，可以尝试将加密套件不需要的椭圆曲线禁用。
 
 | 配置  |依赖  | 说明 | 优化建议 |
-| :---- | :---- | :---- | :---- | :---- |
+| :---- | :---- | :---- | :---- |
 | MBEDTLS_ECDH_C | MBEDTLS_ECP_C | 启用椭圆曲线 Diffie-Hellman 库。用于支持 `*_ECDHE_ECDSA_*`、`*_ECDHE_RSA_*`、`*_DHE_PSK_*` 类型的密码套件 | 根据需要选择 |
 | MBEDTLS_ECDSA_C | MBEDTLS_ECP_C、MBEDTLS_ASN1_WRITE_C、MBEDTLS_ASN1_PARSE_C | 用于支持 `*_ECDHE_ECDSA_*` 类型的密码套件 | 根据需要选择 |
 | MBEDTLS_ECP_C | MBEDTLS_BIGNUM_C 和至少一个 MBEDTLS_ECP_DP_XXX_ENABLED | 启用 GF(p) 椭圆曲线 | 根据需要选择 |
@@ -257,7 +257,7 @@ ROM(CODE + RO + RW) : 71975 bytes（70.29K）
 通常 SSL/TLS 服务器支持多种 TLS 协议版本，客户端则不需要支持所有的协议版本。因此在确定服务器支持的 TLS 协议版本后，可以禁用其他版本的协议。
 
 | 配置  |依赖    | 说明 | 优化建议 |
-| :---- | :---- | :---- | :---- | :---- |
+| :---- | :---- | :---- | :---- |
 | MBEDTLS_SSL_PROTO_TLS1 | MBEDTLS_MD5_C、MBEDTLS_SHA1_C | 启用对 TLS 1.0 版本的支持 | 根据需要选择 |
 | MBEDTLS_SSL_PROTO_TLS1_1 | MBEDTLS_MD5_C、MBEDTLS_SHA1_C | 启用对 TLS 1.1 版本的支持 | 根据需要选择 |
 | MBEDTLS_SSL_PROTO_TLS1_2 | MBEDTLS_SHA1_C 或者 MBEDTLS_SHA256_C 或者 MBEDTLS_SHA512_C | 启用对 TLS 1.2 版本的支持 | 根据需要选择 |
@@ -269,7 +269,7 @@ DTLS 是基于 UDP 的安全加密连接，目的是保障 UDP 通讯的数据�
 如果用户的系统中，不需要使用 DTLS，则可以将下表中的所有配置禁用。
 
 | 配置  |依赖    | 说明 | 优化建议 |
-| :---- | :---- | :---- | :---- | :---- |
+| :---- | :---- | :---- | :---- |
 | MBEDTLS_SSL_PROTO_DTLS | MBEDTLS_SSL_PROTO_TLS1_1 或 MBEDTLS_SSL_PROTO_TLS1_2 | 启用 DTLS 功能，用于对 UDP 进行加密| 如果不需要 DTLS 加密连接，则禁用 |
 | MBEDTLS_SSL_DTLS_ANTI_REPLAY | MBEDTLS_SSL_TLS_C、MBEDTLS_SSL_PROTO_DTLS | 启用对DTLS中的反重放机制的支持 | 可以禁用 |
 | MBEDTLS_SSL_DTLS_HELLO_VERIFY | MBEDTLS_SSL_PROTO_DTLS | 启用对 DTLS HelloVerifyRequest 的支持 | 需要开启 |
