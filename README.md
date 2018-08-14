@@ -62,11 +62,12 @@ RT-Thread online packages --->
 
 ## 3、使用 mbedtls
 
-- 如何从零开始使用，请参考 [用户手册](docs/user-guide.md)。
-- 完整的 API 文档，请参考 [API 手册](docs/api.md)。
-- 详细的示例介绍，请参考 [示例文档](docs/samples.md) 。
-- mbedtls 协议工作原理，请参考 [工作原理](docs/principle.md) 。
-- 更多**详细介绍文档**位于 [`/docs`](/docs) 文件夹下，**使用软件包进行开发前请务必查看**。
+- 如何从零开始使用，请参考 [用户手册](docs/user-guide.md)
+- 完整的 API 文档，请参考 [API 手册](docs/api.md)
+- 详细的示例介绍，请参考 [示例文档](docs/samples.md) 
+- mbedtls 协议工作原理，请参考 [工作原理](docs/principle.md) 
+- mbedtls RAM 和 ROM 优化，请阅读 [资源占用优化参考](docs/RAM_And_ROM_Optimization_Reference.md)
+- 更多**详细介绍文档**位于 [`/docs`](/docs) 文件夹下，**使用软件包进行开发前请务必查看**
 
 ## 4、参考资料
 

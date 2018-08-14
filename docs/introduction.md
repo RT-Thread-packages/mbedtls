@@ -37,6 +37,7 @@ mbedtls
 |   |   introduction.md             // 软件包详细介绍
 |   |   LICENSE                     // 许可证文件
 |   |   principle.md                // 实现原理
+|   |   RAM_And_ROM_Optimization_Reference.md // 资源占用优化参考手册
 |   |   README.md                   // 文档结构说明
 |   |   samples.md                  // 软件包示例
 |   |   user-guide.md               // 使用说明
