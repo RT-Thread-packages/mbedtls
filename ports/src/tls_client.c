@@ -34,14 +34,22 @@
 #define rt_kprintf rt_kprintf("[tls]");rt_kprintf
 
 #if defined(MBEDTLS_DEBUG_C)
-#define DEBUG_LEVEL (10)
+#define DEBUG_LEVEL (2)
 #endif
+
+static void _ssl_debug(void *ctx, int level, const char *file, int line, const char *str)
+{
+    ((void) level);
+
+    rt_kprintf("%s:%04d: %s", file, line, str);
+}
 
 int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLen)
 {
     int ret = 0;
 
 #if defined(MBEDTLS_DEBUG_C)
+    rt_kprintf("[tls] Set debug level (%d)", (int)DEBUG_LEVEL);
     mbedtls_debug_set_threshold((int)DEBUG_LEVEL);
 #endif
 
@@ -124,6 +132,8 @@ int mbedtls_client_context(MbedTLSSession *session)
     mbedtls_ssl_conf_authmode(&session->conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
     mbedtls_ssl_conf_ca_chain(&session->conf, &session->cacert, NULL);
     mbedtls_ssl_conf_rng(&session->conf, mbedtls_ctr_drbg_random, &session->ctr_drbg);
+
+    mbedtls_ssl_conf_dbg(&session->conf, _ssl_debug, NULL);
 
     if ((ret = mbedtls_ssl_setup(&session->ssl, &session->conf)) != 0)
     {
