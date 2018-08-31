@@ -2726,5 +2726,6 @@
 #define tls_free    rt_free
 #define tls_realloc rt_realloc
 #define tls_calloc  rt_calloc
+#define tls_strdup  rt_strdup
 
 #endif /* MBEDTLS_CONFIG_H */
