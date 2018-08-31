@@ -27,72 +27,72 @@
 
 #include <rtthread.h>
 
-#include "tls_certificate.h"
-#include "tls_client.h"
+#include <tls_certificate.h>
+#include <tls_client.h>
 
 #if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
+#include <mbedtls/config.h>
 #else
 #include MBEDTLS_CONFIG_FILE
 #endif
 
-#define malloc  tls_malloc
-#define free    tls_free
-#define strdup  rt_strdup
-
-#define MBEDTLS_WEB_SERVER  "www.howsmyssl.com"
+// https://www.rt-thread.org/download/rt-thread.txt
+#define MBEDTLS_WEB_SERVER  "www.rt-thread.org"
 #define MBEDTLS_WEB_PORT    "443"
 
 #define MBEDTLS_READ_BUFFER 1024
 
-static const char *REQUEST = "GET https://www.howsmyssl.com/a/check HTTP/1.1\r\n"
-    "Host: www.howsmyssl.com\r\n"
+static const char *REQUEST = "GET /download/rt-thread.txt HTTP/1.1\r\n"
+    "Host: www.rt-thread.org\r\n"
     "User-Agent: rtthread/3.1 rtt\r\n"
     "\r\n";
 
-static void mbedlts_client_entry(void *parament)
+static void mbedtls_client_entry(void *parament)
 {
-    int ret = 0, len = 0;
+    int ret = 0;
     MbedTLSSession *tls_session = RT_NULL;
     char *pers = "hello_world";
 
     rt_kprintf("MbedTLS test sample!\r\n");
-    rt_kprintf("Memory usage before the handshake connection is established:\r\n");
-    msh_exec("free", strlen("free"));    
 
-    tls_session = (MbedTLSSession *)malloc(sizeof(MbedTLSSession));
-    if(!tls_session)
-    {   
-        rt_kprintf("no memory for tls_session struct\n");
+#ifdef FINSH_USING_MSH
+    rt_kprintf("Memory usage before the handshake connection is established:\r\n");
+    msh_exec("free", rt_strlen("free"));
+#endif
+    tls_session = (MbedTLSSession *) tls_malloc(sizeof(MbedTLSSession));
+    if (tls_session == RT_NULL)
+    {
+        rt_kprintf("No memory for MbedTLS session object.\n");
         return;
     }
-    
-    tls_session->host = strdup(MBEDTLS_WEB_SERVER);
-    tls_session->port = strdup(MBEDTLS_WEB_PORT);
+
+    tls_session->host = tls_strdup(MBEDTLS_WEB_SERVER);
+    tls_session->port = tls_strdup(MBEDTLS_WEB_PORT);
 
     tls_session->buffer_len = MBEDTLS_READ_BUFFER;
-    tls_session->buffer = malloc(tls_session->buffer_len);
-    if(!tls_session->buffer)
+    tls_session->buffer = tls_malloc(tls_session->buffer_len);
+    if (tls_session->buffer == RT_NULL)
     {
-        rt_kprintf("no memory for tls_session->buffer malloc\n");
+        rt_kprintf("No memory for MbedTLS buffer\n");
+        tls_free(tls_session);
         return;
     }
 
     rt_kprintf("Start handshake tick:%d\n", rt_tick_get());
-    
-    if((ret = mbedtls_client_init(tls_session, (void *)pers, strlen(pers))) != 0)
+
+    if ((ret = mbedtls_client_init(tls_session, (void *) pers, rt_strlen(pers))) != 0)
     {
         rt_kprintf("MbedTLSClientInit err return : -0x%x\n", -ret);
         goto __exit;
     }
 
-    if((ret = mbedtls_client_context(tls_session)) < 0)
+    if ((ret = mbedtls_client_context(tls_session)) < 0)
     {
         rt_kprintf("MbedTLSCLlientContext err return : -0x%x\n", -ret);
         goto __exit;
     }
 
-    if((ret = mbedtls_client_connect(tls_session)) != 0)
+    if ((ret = mbedtls_client_connect(tls_session)) != 0)
     {
         rt_kprintf("MbedTLSCLlientConnect err return : -0x%x\n", -ret);
         goto __exit;
@@ -102,77 +102,74 @@ static void mbedlts_client_entry(void *parament)
 
     rt_kprintf("MbedTLS connect success...\n");
 
+#ifdef FINSH_USING_MSH
     rt_kprintf("Memory usage after the handshake connection is established:\r\n");
-    msh_exec("free", strlen("free"));
+    msh_exec("free", rt_strlen("free"));
+#endif
 
-    while((ret = mbedtls_client_write(tls_session, (const unsigned char *)REQUEST, strlen(REQUEST))) <= 0)
+    while ((ret = mbedtls_client_write(tls_session, (const unsigned char *) REQUEST, rt_strlen(REQUEST))) <= 0)
     {
-        if(ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
+        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
         {
             rt_kprintf("mbedtls_ssl_write returned -0x%x\n", -ret);
             goto __exit;
         }
     }
     rt_kprintf("Writing HTTP request success...\n");
-    
-    len = ret;
 
     rt_kprintf("Getting HTTP response...\n");
-    do
     {
-        int i= 0;
-        
-        memset(tls_session->buffer, 0x00, tls_session->buffer_len);
-        ret = mbedtls_client_read(tls_session, (unsigned char *)tls_session->buffer, len);
-        if(ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE)	
-                continue;
-        
-        if(ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
-            break;
+        int i = 0;
 
-        if(ret < 0)
+        rt_memset(tls_session->buffer, 0x00, MBEDTLS_READ_BUFFER);
+        ret = mbedtls_client_read(tls_session, (unsigned char *) tls_session->buffer, MBEDTLS_READ_BUFFER);
+        if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE
+                || ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
+            goto __exit;
+
+        if (ret < 0)
         {
-            rt_kprintf("mbedtls_ssl_read returned -0x%x\n", -ret);
-            break;
+            rt_kprintf("Mbedtls_ssl_read returned -0x%x\n", -ret);
+            goto __exit;
         }
 
-        if(ret == 0)
+        if (ret == 0)
         {
-            rt_kprintf("connection closed\n");
-            break;
+            rt_kprintf("TCP server connection closed.\n");
+            goto __exit;
         }
 
-        len = ret;
-        for(i = 0; i<len; i++)
+        for (i = 0; i < ret; i++)
             rt_kprintf("%c", tls_session->buffer[i]);
-    }while(1);
-    rt_kprintf("\n");
-    
+
+        rt_kprintf("\n");
+    }
+
 __exit:
     mbedtls_client_close(tls_session);
 
-    rt_kprintf("mbedlts_client_entry close!\n");
+    rt_kprintf("MbedTLS connection close success.\n");
 
-    return ;
+    return;
 }
-int mbedlts_client_start(void)
+
+int mbedtls_client_start(void)
 {
     rt_thread_t tid;
-  
-    tid = rt_thread_create("tls_c",
-                    mbedlts_client_entry, NULL,
-                    6 * 1024, RT_THREAD_PRIORITY_MAX / 3 - 1, 5);
-    if (tid != RT_NULL)
-        rt_thread_startup(tid); 
+
+    tid = rt_thread_create("tls_c", mbedtls_client_entry, RT_NULL, 6 * 1024, RT_THREAD_PRIORITY_MAX / 3 - 1, 5);
+    if (tid)
+    {
+        rt_thread_startup(tid);
+    }
 
     return RT_EOK;
 }
 
 #ifdef RT_USING_FINSH
 #include <finsh.h>
-    FINSH_FUNCTION_EXPORT_ALIAS(mbedlts_client_start, tls_test, mbedtls client test start);
+FINSH_FUNCTION_EXPORT_ALIAS(mbedtls_client_start, tls_test, mbedtls client test start);
 #ifdef FINSH_USING_MSH
-    MSH_CMD_EXPORT_ALIAS(mbedlts_client_start, tls_test, mbedtls client test start);
-#endif 
+MSH_CMD_EXPORT_ALIAS(mbedtls_client_start, tls_test, mbedtls client test start);
 #endif
-
+#endif
