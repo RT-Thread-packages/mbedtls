@@ -47,7 +47,7 @@ static const char *REQUEST = "GET /download/rt-thread.txt HTTP/1.1\r\n"
     "User-Agent: rtthread/3.1 rtt\r\n"
     "\r\n";
 
-static void mbedlts_client_entry(void *parament)
+static void mbedtls_client_entry(void *parament)
 {
     int ret = 0;
     MbedTLSSession *tls_session = RT_NULL;
@@ -153,11 +153,11 @@ __exit:
     return;
 }
 
-int mbedlts_client_start(void)
+int mbedtls_client_start(void)
 {
     rt_thread_t tid;
 
-    tid = rt_thread_create("tls_c", mbedlts_client_entry, RT_NULL, 6 * 1024, RT_THREAD_PRIORITY_MAX / 3 - 1, 5);
+    tid = rt_thread_create("tls_c", mbedtls_client_entry, RT_NULL, 6 * 1024, RT_THREAD_PRIORITY_MAX / 3 - 1, 5);
     if (tid)
     {
         rt_thread_startup(tid);
@@ -168,8 +168,8 @@ int mbedlts_client_start(void)
 
 #ifdef RT_USING_FINSH
 #include <finsh.h>
-FINSH_FUNCTION_EXPORT_ALIAS(mbedlts_client_start, tls_test, mbedtls client test start);
+FINSH_FUNCTION_EXPORT_ALIAS(mbedtls_client_start, tls_test, mbedtls client test start);
 #ifdef FINSH_USING_MSH
-MSH_CMD_EXPORT_ALIAS(mbedlts_client_start, tls_test, mbedtls client test start);
+MSH_CMD_EXPORT_ALIAS(mbedtls_client_start, tls_test, mbedtls client test start);
 #endif
 #endif

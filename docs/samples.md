@@ -10,20 +10,20 @@
 
 ## 例程工作流程
 
-本例程使用了 TLS 测试网站 `www.howsmyssl.com`，使用 `mbedtls_client_write` 函数发送 HTTP 测试请求，成功后，该网站会返回一段加密数据，测试例程将解析后的数据输出到控制台。
+本例程使用了 RT-Thread 官方 TLS 测试网站 `www.rt-thread.org`，使用 `mbedtls_client_write` 函数发送 HTTP 测试请求，成功后，该网站会返回文本数据，测试例程将解析后的数据输出到控制台。
 
 - 例程使用的 HTTP 请求数据如下所示
 
 ```c
-"GET https://www.howsmyssl.com/a/check HTTP/1.0\r\n"
-"Host: www.howsmyssl.com\r\n"
+"GET /download/rt-thread.txt HTTP/1.0\r\n"
+"Host: www.rt-thread.org\r\n"
 "User-Agent: rtthread/3.1 rtt\r\n"
 "\r\n";
 ```
 
 - mbedTLS 测试例程的基本工作流程如下所示
 
-    - client连接外网 TLS 测试网站 `www.howsmyssl.com`
+    - client连接测试网站 `www.rt-thread.org`
     - client 和 server 握手成功
     - client 发送请求
     - server 回应请求
@@ -108,32 +108,35 @@ SSL/TLS 服务器进行证书校验的过程中，会对当前发起校验请求
 msh />tls_test
 MbedTLS test sample!
 Memory usage before the handshake connection is established:
-memheap  pool size  max used size available size
-------- ---------- ------------- --------------
-sram    59800      48            59752
-heap    31457280   16612         31440668
-Start handshake tick:273509
+total memory: 33554408
+used memory : 20968
+maximum allocated memory: 20968
+Start handshake tick:3313
 [tls]mbedtls client struct init success...
 [tls]Loading the CA root certificate success...
 [tls]mbedtls client context init success...
-[tls]Connected www.howsmyssl.com:443 success...
+msh />[tls]Connected www.rt-thread.org:443 success...
 [tls]Certificate verified success...
-Finish handshake tick:275474
+Finish handshake tick:6592
 MbedTLS connect success...
 Memory usage after the handshake connection is established:
-memheap  pool size  max used size available size
-------- ---------- ------------- --------------
-sram    59800      48            59752
-heap    31457280   42964         31419408
+total memory: 33554408
+used memory : 45480
+maximum allocated memory: 50808
 Writing HTTP request success...
 Getting HTTP response...
-HTTP/1.0 200 OK
-Content-Length: 6672
-Access-Control-Allow-Origin: *
-Content-Type: application/json
-Date: Thu, 02 Aug 2018 03:43:52 GMT
-Strict-Transport-Security: max-age=631138519; includeSubdomains; preload
+HTTP/1.1 200 OK
+Server: nginx/1.10.3 (Ubuntu)
+Date: Fri, 31 Aug 2018 08:29:24 GMT
+Content-Type: text/plain
+Content-Length: 267
+Last-Modified: Sat, 04 Aug 2018 02:14:51 GMT
+Connection: keep-alive
+ETag: "5b650c1b-10b"
+Strict-Transport-Security: max-age=1800; includeSubdomains; preload
+Accept-Ranges: bytes
 
-{"given_cipher_suites":["TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384","TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384","TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",}
-mbedlts_client_entry close!
+RT-Thread is an open source IoT operating system from China, which has strong scalability: from a tiny kernel running on a tiny core, for example ARM Cortex-M0, or Cortex-M3/4/7, to a rich feature system running on MIPS32, ARM Cortex-A8, ARM Cortex-A9 DualCore etc.
+
+MbedTLS connection close success.
 ```
