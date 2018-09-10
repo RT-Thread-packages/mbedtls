@@ -144,12 +144,12 @@ if((ret = mbedtls_client_connect(tls_session)) != 0)
 
 示例代码如下所示：
 
+```c
 static const char *REQUEST = "GET https://www.howsmyssl.com/a/check HTTP/1.0\r\n"
     "Host: www.howsmyssl.com\r\n"
     "User-Agent: rtthread/3.1 rtt\r\n"
     "\r\n";
 
-```c
 while((ret = mbedtls_client_write(tls_session, (const unsigned char *)REQUEST,strlen(REQUEST))) <= 0)
 {
     if(ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
