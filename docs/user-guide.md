@@ -19,17 +19,17 @@ mbedtls 的基本工作流程如下所示：
 
 详细的配置介绍如下所示：
 
-```shell
+```c
 RT-Thread online packages --->
-    security packages  --->
-            Select Root Certificate  --->      # 选择证书文件
-        [*] mbedtls: An portable and flexible SSL/TLS library  ---  # 打开 mbedtls 软件包
-        [*]   Store the AES tables in ROM      # 将 AES 表存储在 ROM 中，优化内存占用
-        (2)   Maximum window size used         # 用于点乘的最大“窗口”大小（2-7，该值越小内存占用也越小）
-        (3584) Maxium fragment length in bytes # 配置数据帧大小（0x7200 错误可尝试增加该大小）
-        [*]   Enable a mbedtls client example  # 开启 mbedtls 测试例程
-        [ ]   Enable Debug log output          # 开启调试 log 输出
-              version (latest)  --->           # 选择软件包版本，默认为最新版本
+  security packages  --->
+        Select Root Certificate  --->      # 选择证书文件
+    [*] mbedtls: An portable and flexible SSL/TLS library # 打开 mbedtls 软件包
+    [*]   Store the AES tables in ROM      # 将 AES 表存储在 ROM 中
+    (2)   Maximum window size used         # 用于点乘的最大“窗口”大小（2-7）
+    (3584) Maxium fragment length in bytes # 配置数据帧大小
+    [*]   Enable a mbedtls client example  # 开启 mbedtls 测试例程
+    [ ]   Enable Debug log output          # 开启调试 log 输出
+          version (latest)  --->           # 选择软件包版本，默认为最新版本
 ```
 
 - `Using all default CA` 配置选项会将 `certs/default` 目录下的所有预置证书加入编译，将占用很大的内存
@@ -319,7 +319,9 @@ HMUfpIBvFSDJ3gyICh3WZlXi/EjJKSZp4A==
 
 ### 证书 CN 错误
 
+```c
     verification info: ! The certificate Common Name (CN) does not match with the expected CN
+```
 
 - 原因
 
@@ -339,7 +341,7 @@ HMUfpIBvFSDJ3gyICh3WZlXi/EjJKSZp4A==
 
     `menuconfig` 配置增加数据帧大小 ( `Maxium fragment length in bytes` )
 
-```shell
+```c
 RT-Thread online packages --->
     security packages  --->
             Select Root Certificate  --->      # 选择证书文件

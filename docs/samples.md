@@ -39,17 +39,17 @@
 
     启用 mbedtls 软件包，并配置使能测试例程（Enable a mbedtls client example），如下所示：
 
-```shell
+```c
 RT-Thread online packages --->
-    security packages  --->
-            Select Root Certificate  --->      # 选择证书文件
-        [*] mbedtls: An portable and flexible SSL/TLS library  ---  # 打开 mbedtls 软件包
-        [*]   Store the AES tables in ROM      # 将 AES 表存储在 ROM 中，优化内存占用
-        (2)   Maximum window size used         # 用于点乘的最大“窗口”大小（2-7，该值越小内存占用也越小）
-        (3584) Maxium fragment length in bytes # 配置数据帧大小（0x7200 错误可尝试增加该大小）
-        [*]   Enable a mbedtls client example  # 开启 mbedtls 测试例程
-        [ ]   Enable Debug log output          # 开启调试 log 输出
-              version (latest)  --->           # 选择软件包版本，默认为最新版本
+  security packages  --->
+        Select Root Certificate  --->      # 选择证书文件
+    [*] mbedtls: An portable and flexible SSL/TLS library # 打开 mbedtls 软件包
+    [*]   Store the AES tables in ROM      # 将 AES 表存储在 ROM 中
+    (2)   Maximum window size used         # 用于点乘的最大“窗口”大小（2-7）
+    (3584) Maxium fragment length in bytes # 配置数据帧大小
+    [*]   Enable a mbedtls client example  # 开启 mbedtls 测试例程
+    [ ]   Enable Debug log output          # 开启调试 log 输出
+          version (latest)  --->           # 选择软件包版本，默认为最新版本
 ```
 
 - 使用 `pkgs --update` 命令下载软件包
@@ -63,14 +63,14 @@ SSL/TLS 服务器进行证书校验的过程中，会对当前发起校验请求
 
     未同步过时间的设备输入 **`date`** 命令后如下所示：
 
-    ```shell
+    ```c
     msh />date
     Thu Jan  1 00:00:06 1970
     ```
 
     使用 **`date`** 设置当前时间，如下所示：
 
-    ```shell
+    ```c
     msh />date 2018 08 02 12 23 00
     msh />date
     Thu Aug  2 12:23:01 2018
@@ -81,7 +81,7 @@ SSL/TLS 服务器进行证书校验的过程中，会对当前发起校验请求
 
     该方式需要依赖 NTP 工具包，使用 `menuconfig` 配置获取，如下所示：
 
-    ```shell
+    ```c
     RT-Thread online packages --->
         IoT - internet of things  --->
             -*- netutils: Networking utilities for RT-Thread  --->
@@ -92,7 +92,7 @@ SSL/TLS 服务器进行证书校验的过程中，会对当前发起校验请求
 
     使用命令 **`ntp_sync`** 同步网络时间
 
-    ```shell
+    ```c
     msh />ntp_sync
     Get local time from NTP server: Thu Aug  2 14:31:30 2018
     The system time is updated. Timezone is 8.
@@ -104,7 +104,7 @@ SSL/TLS 服务器进行证书校验的过程中，会对当前发起校验请求
 
 在 MSH 中使用命令 **`tls_test`** 执行示例程序，成功建立 TLS 连接后，设备会从服务器拿到一组密码套件，设备 log 如下所示：
 
-```shell
+```c
 msh />tls_test
 MbedTLS test sample!
 Memory usage before the handshake connection is established:
