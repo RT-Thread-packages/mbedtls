@@ -50,7 +50,7 @@
 
     **mbedtls** 默认的配置文件为 `mbedtls/include/mbedtls/config.h`，而 **RT-Thread** 使用的配置文件为 `ports/inc/tls_config.h`。用户进行配置优化的时候也是使用的 `ports/inc/tls_config.h` 文件。
 
-```text
+```c
 RO(CODE + RO)       : 159828 bytes（156.08K）
 RW(RW + ZI)         :    720 bytes
 ROM(CODE + RO + RW) : 159972 bytes（156.22K）
@@ -59,7 +59,7 @@ ROM(CODE + RO + RW) : 159972 bytes（156.22K）
 
 - 优化后的配置资源占用情况
 
-```text
+```c
 RO(CODE + RO)       : 71893 bytes（70.21K）
 RW(RW + ZI)         :    82 bytes
 ROM(CODE + RO + RW) : 71975 bytes（70.29K）
