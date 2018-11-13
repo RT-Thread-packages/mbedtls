@@ -31,17 +31,25 @@
 #include MBEDTLS_CONFIG_FILE
 #endif
 
-#define rt_kprintf rt_kprintf("[tls]");rt_kprintf
-
 #if defined(MBEDTLS_DEBUG_C)
 #define DEBUG_LEVEL (2)
 #endif
+
+#define DBG_ENABLE
+#define DBG_COLOR
+#define DBG_SECTION_NAME    "mbedtls.clnt"
+#ifdef MBEDTLS_DEBUG_C
+#define DBG_LEVEL           DBG_LOG
+#else
+#define DBG_LEVEL           DBG_INFO
+#endif /* MBEDTLS_DEBUG_C */
+#include <rtdbg.h>
 
 static void _ssl_debug(void *ctx, int level, const char *file, int line, const char *str)
 {
     ((void) level);
 
-    rt_kprintf("%s:%04d: %s", file, line, str);
+    LOG_D("%s:%04d: %s", file, line, str);
 }
 
 int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLen)
@@ -49,8 +57,8 @@ int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLe
     int ret = 0;
 
 #if defined(MBEDTLS_DEBUG_C)
-    rt_kprintf("[tls] Set debug level (%d)", (int)DEBUG_LEVEL);
-    mbedtls_debug_set_threshold((int)DEBUG_LEVEL);
+    LOG_D("Set debug level (%d)", (int) DEBUG_LEVEL);
+    mbedtls_debug_set_threshold((int) DEBUG_LEVEL);
 #endif
 
     mbedtls_net_init(&session->server_fd);
@@ -60,19 +68,25 @@ int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLe
     mbedtls_entropy_init(&session->entropy);
     mbedtls_x509_crt_init(&session->cacert);
     
-    if((ret = mbedtls_ctr_drbg_seed(&session->ctr_drbg, mbedtls_entropy_func, &session->entropy,
-                                    (unsigned char *)entropy, entropyLen)) != 0)
+    ret = mbedtls_ctr_drbg_seed(&session->ctr_drbg, mbedtls_entropy_func, &session->entropy,
+                                     (unsigned char *)entropy, entropyLen);
+    if (ret != 0)
     {
-        rt_kprintf("mbedtls_ctr_drbg_seed returned -0x%x\n", -ret);
+        LOG_E("mbedtls_ctr_drbg_seed error, return -0x%x\n", -ret);
         return ret;
     }
-    rt_kprintf("mbedtls client struct init success...\n");
+    LOG_D("mbedtls client struct init success...");
 
     return RT_EOK;
 }
 
 int mbedtls_client_close(MbedTLSSession *session)
 {
+    if (session == RT_NULL)
+    {
+        return -RT_ERROR;
+    }
+
     mbedtls_ssl_close_notify(&session->ssl);
     mbedtls_net_free(&session->server_fd);
     mbedtls_x509_crt_free(&session->cacert);
@@ -81,16 +95,22 @@ int mbedtls_client_close(MbedTLSSession *session)
     mbedtls_ssl_config_free(&session->conf);
     mbedtls_ssl_free(&session->ssl);
     
-    if(session->buffer)
+    if (session->buffer)
+    {
         tls_free(session->buffer);
-
-    if(session->host)
+    }
+        
+    if (session->host)
+    {
         tls_free(session->host);
+    }
     
     if(session->port)
+    {
         tls_free(session->port);
-    
-    if(session)
+    }
+
+    if (session)
     {   
         tls_free(session);
         session = RT_NULL;
@@ -102,30 +122,35 @@ int mbedtls_client_close(MbedTLSSession *session)
 int mbedtls_client_context(MbedTLSSession *session)
 {
     int ret = 0;
-
-    rt_kprintf("Loading the CA root certificate success...\n");
-    
+ 
     ret = mbedtls_x509_crt_parse(&session->cacert, (const unsigned char *)mbedtls_root_certificate,
                                  mbedtls_root_certificate_len);
-    if(ret < 0)
+    if (ret < 0)
     {
-        rt_kprintf("mbedtls_x509_crt_parse err returned -0x%x\n", -ret);
-       return ret;
-    }
-
-    /* Hostname set here should match CN in server certificate */
-    if((ret = mbedtls_ssl_set_hostname(&session->ssl, session->host)) != 0)
-    {
-        rt_kprintf("mbedtls_ssl_set_hostname err returned -0x%x\n", -ret);
+        LOG_E("mbedtls_x509_crt_parse error,  return -0x%x", -ret);
         return ret;
     }
+
+    LOG_D("Loading the CA root certificate success...");
+
+    /* Hostname set here should match CN in server certificate */
+    if (session->host)
+    {
+        ret = mbedtls_ssl_set_hostname(&session->ssl, session->host);
+        if (ret != 0)
+        {
+            LOG_E("mbedtls_ssl_set_hostname error, return -0x%x", -ret);
+            return ret;
+        }
+    }
     
-    if((ret = mbedtls_ssl_config_defaults(&session->conf,
+    ret = mbedtls_ssl_config_defaults(&session->conf,
                                           MBEDTLS_SSL_IS_CLIENT,
                                           MBEDTLS_SSL_TRANSPORT_STREAM,
-                                          MBEDTLS_SSL_PRESET_DEFAULT)) != 0)
+                                          MBEDTLS_SSL_PRESET_DEFAULT);
+    if (ret != 0)
     {
-        rt_kprintf("mbedtls_ssl_config_defaults returned -0x%x\n", -ret);
+        LOG_E("mbedtls_ssl_config_defaults error, return -0x%x", -ret);
         return ret;
     }
     
@@ -135,12 +160,13 @@ int mbedtls_client_context(MbedTLSSession *session)
 
     mbedtls_ssl_conf_dbg(&session->conf, _ssl_debug, NULL);
 
-    if ((ret = mbedtls_ssl_setup(&session->ssl, &session->conf)) != 0)
+    ret = mbedtls_ssl_setup(&session->ssl, &session->conf);
+    if (ret != 0)
     {
-        rt_kprintf("mbedtls_ssl_setup returned -0x%x\n", -ret);
+        LOG_E("mbedtls_ssl_setup error, return -0x%x\n", -ret);
         return ret;
     }
-    rt_kprintf("mbedtls client context init success...\n");
+    LOG_D("mbedtls client context init success...");
         
     return RT_EOK;
 }
@@ -149,14 +175,15 @@ int mbedtls_client_connect(MbedTLSSession *session)
 {
     int ret = 0;
 
-    if ((ret = mbedtls_net_connect(&session->server_fd, session->host,
-                                  session->port, MBEDTLS_NET_PROTO_TCP)) != 0)
+    ret = mbedtls_net_connect(&session->server_fd, session->host, 
+                                session->port, MBEDTLS_NET_PROTO_TCP);
+    if (ret != 0)
     {
-        rt_kprintf("mbedtls_net_connect err returned -0x%x\n", -ret);
+        LOG_E("mbedtls_net_connect error, return -0x%x", -ret);
         return ret;
     }
 
-    rt_kprintf("Connected %s:%s success...\n", session->host, session->port);
+    LOG_D("Connected %s:%s success...", session->host, session->port);
 
     mbedtls_ssl_set_bio(&session->ssl, &session->server_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
 
@@ -164,38 +191,41 @@ int mbedtls_client_connect(MbedTLSSession *session)
     {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
         {
-            rt_kprintf("mbedtls_ssl_handshake returned -0x%x\n", -ret);
+            LOG_E("mbedtls_ssl_handshake error, return -0x%x", -ret);
             return ret;
         }
     }
 
-    if ((ret = mbedtls_ssl_get_verify_result(&session->ssl)) != 0)
+    ret = mbedtls_ssl_get_verify_result(&session->ssl);
+    if (ret != 0)
     {
-        rt_kprintf("verify peer certificate fail....\n");
+        LOG_E("verify peer certificate fail....");
         memset(session->buffer, 0x00, session->buffer_len);
         mbedtls_x509_crt_verify_info((char *)session->buffer, session->buffer_len, "  ! ", ret);
-        rt_kprintf("verification info: %s\n", session->buffer);
+        LOG_E("verification info: %s", session->buffer);
     }
-    else 
-    {
-        rt_kprintf("Certificate verified success...\n");
-    }
+
+    LOG_D("Certificate verified success...");
 
     return RT_EOK;
 }
 
 int mbedtls_client_read(MbedTLSSession *session, unsigned char *buf , size_t len)
 {
-    if(!session || !buf)
-        return RT_ERROR;
+    if (session == RT_NULL || buf == RT_NULL)
+    {
+        return -RT_ERROR;
+    } 
 
     return mbedtls_ssl_read(&session->ssl, (unsigned char *)buf, len);
 }
 
 int mbedtls_client_write(MbedTLSSession *session, const unsigned char *buf , size_t len)
 {
-    if(!session || !buf)
-        return RT_ERROR;
+    if (session == RT_NULL || buf == RT_NULL)
+    {
+        return -RT_ERROR;
+    }
 
     return mbedtls_ssl_write(&session->ssl, (unsigned char *)buf, len);
 }
