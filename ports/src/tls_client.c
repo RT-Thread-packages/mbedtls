@@ -212,20 +212,36 @@ int mbedtls_client_connect(MbedTLSSession *session)
 
 int mbedtls_client_read(MbedTLSSession *session, unsigned char *buf , size_t len)
 {
+    int ret = 0;
+
     if (session == RT_NULL || buf == RT_NULL)
     {
         return -RT_ERROR;
     } 
 
-    return mbedtls_ssl_read(&session->ssl, (unsigned char *)buf, len);
+    ret = mbedtls_ssl_read(&session->ssl, (unsigned char *)buf, len);
+    if (ret < 0)
+    {
+        LOG_E("mbedtls_client_read data error, return -0x%x", -ret);
+    }
+
+    return ret;
 }
 
 int mbedtls_client_write(MbedTLSSession *session, const unsigned char *buf , size_t len)
 {
+    int ret = 0;
+
     if (session == RT_NULL || buf == RT_NULL)
     {
         return -RT_ERROR;
     }
 
-    return mbedtls_ssl_write(&session->ssl, (unsigned char *)buf, len);
+    ret = mbedtls_ssl_write(&session->ssl, (unsigned char *)buf, len);
+    if (ret < 0)
+    {
+        LOG_E("mbedtls_client_write data error, return -0x%x", -ret);
+    }
+
+    return ret;
 }
