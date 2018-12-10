@@ -65,6 +65,7 @@ static void mbedtls_client_entry(void *parament)
         rt_kprintf("No memory for MbedTLS session object.\n");
         return;
     }
+    rt_memset(tls_session, 0x0, sizeof(MbedTLSSession));
 
     tls_session->host = tls_strdup(MBEDTLS_WEB_SERVER);
     tls_session->port = tls_strdup(MBEDTLS_WEB_PORT);
@@ -74,6 +75,14 @@ static void mbedtls_client_entry(void *parament)
     if (tls_session->buffer == RT_NULL)
     {
         rt_kprintf("No memory for MbedTLS buffer\n");
+        if (tls_session->host)
+        {
+            tls_free(tls_session->host);
+        }
+        if (tls_session->port)
+        {
+            tls_free(tls_session->port);
+        }
         tls_free(tls_session);
         return;
     }
