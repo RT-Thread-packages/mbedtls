@@ -1,6 +1,6 @@
 # 软件包介绍
 
-> [**mbedtls**](https://github.com/RT-Thread-packages/mbedtls) 软件包是 **RT-Thread** 基于 [ARMmbed/mbedtls](https://github.com/ARMmbed/mbedtls/) 开源库的移植。
+ [**mbedtls**](https://github.com/RT-Thread-packages/mbedtls) 软件包是 **RT-Thread** 基于 [ARMmbed/mbedtls](https://github.com/ARMmbed/mbedtls/) 开源库的移植。
 
 **mbedTLS**（前身 PolarSSL）是一个由 ARM 公司开源和维护的 SSL/TLS 算法库。其使用 C 编程语言以最小的编码占用空间实现了 SSL/TLS 功能及各种加密算法，易于理解、使用、集成和扩展，方便开发人员轻松地在嵌入式产品中使用 SSL/TLS 功能。
 
@@ -24,7 +24,7 @@ mbedTLS 软件包提供了一组可以单独使用和编译的加密组件，各
 
 **ports** 目录是 RT-Thread 移植 mbedtls 软件包时所涉及到的移植文件，使用 scons 进行重新构建。
 
-```shell
+```c
 mbedtls
 |   LICENSE                         // 软件包许可协议
 |   README.md                       // 软件包使用说明

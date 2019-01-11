@@ -63,42 +63,42 @@ SSL/TLS 服务器进行证书校验的过程中，会对当前发起校验请求
 
     未同步过时间的设备输入 **`date`** 命令后如下所示：
 
-    ```c
-    msh />date
-    Thu Jan  1 00:00:06 1970
-    ```
+```c
+msh />date
+Thu Jan  1 00:00:06 1970
+```
 
     使用 **`date`** 设置当前时间，如下所示：
 
-    ```c
-    msh />date 2018 08 02 12 23 00
-    msh />date
-    Thu Aug  2 12:23:01 2018
-    msh />
-    ```
+```c
+msh />date 2018 08 02 12 23 00
+msh />date
+Thu Aug  2 12:23:01 2018
+msh />
+```
 
 - 方式二： 使用 NTP 同步网络时间
 
     该方式需要依赖 NTP 工具包，使用 `menuconfig` 配置获取，如下所示：
 
-    ```c
-    RT-Thread online packages --->
-        IoT - internet of things  --->
-            -*- netutils: Networking utilities for RT-Thread  --->
-                -*-   Enable NTP(Network Time Protocol) client
-                (8)     Timezone for calculate local time
-                (cn.ntp.org.cn) NTP server name
-    ```
+```c
+RT-Thread online packages --->
+    IoT - internet of things  --->
+        -*- netutils: Networking utilities for RT-Thread  --->
+            -*-   Enable NTP(Network Time Protocol) client
+            (8)     Timezone for calculate local time
+            (cn.ntp.org.cn) NTP server name
+```
 
     使用命令 **`ntp_sync`** 同步网络时间
 
-    ```c
-    msh />ntp_sync
-    Get local time from NTP server: Thu Aug  2 14:31:30 2018
-    The system time is updated. Timezone is 8.
-    msh />date
-    Thu Aug  2 14:31:34 2018
-    ```
+```c
+msh />ntp_sync
+Get local time from NTP server: Thu Aug  2 14:31:30 2018
+The system time is updated. Timezone is 8.
+msh />date
+Thu Aug  2 14:31:34 2018
+```
 
 ## 启动例程
 

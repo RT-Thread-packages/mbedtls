@@ -11,7 +11,9 @@
 
 ### mbedtls 初始化
 
-> int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLen);
+```c
+int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLen);
+```
 
 mbedtls 客户端初始化函数，用于初始化底层网络接口、设置证书、设置 SSL 会话等。
 
@@ -26,7 +28,9 @@ mbedtls 客户端初始化函数，用于初始化底层网络接口、设置证
 
 ### 配置 mbedtls 上下文
 
-> int mbedtls_client_context(MbedTLSSession *session);
+```c
+int mbedtls_client_context(MbedTLSSession *session);
+```
 
 SSL 层配置，应用程序使用 `mbedtls_client_context` 函数配置客户端上下文信息，包括证书解析、设置主机名、设置默认 SSL 配置、设置认证模式（默认 MBEDTLS_SSL_VERIFY_OPTIONAL）等。
 
@@ -39,7 +43,9 @@ SSL 层配置，应用程序使用 `mbedtls_client_context` 函数配置客户�
 
 ### 建立 SSL/TLS 连接
 
-> int mbedtls_client_connect(MbedTLSSession *session);
+```c
+int mbedtls_client_connect(MbedTLSSession *session);
+```
 
 使用 `mbedtls_client_connect` 函数为 SSL/TLS 连接建立通道。这里包含整个的握手连接过程，以及证书校验结果。
 
@@ -54,7 +60,9 @@ SSL 层配置，应用程序使用 `mbedtls_client_context` 函数配置客户�
 
 - **向加密连接写入数据**
 
-> int mbedtls_client_write(MbedTLSSession *session, const unsigned char *buf , size_t len);
+```c
+int mbedtls_client_write(MbedTLSSession *session, const unsigned char *buf , size_t len);
+```
 
 | 参数           | 描述    |
 | :-----         | :-----  |
@@ -67,7 +75,9 @@ SSL 层配置，应用程序使用 `mbedtls_client_context` 函数配置客户�
 
 - **从加密连接读取数据**
 
-> int mbedtls_client_read(MbedTLSSession *session, unsigned char *buf , size_t len);
+```c
+int mbedtls_client_read(MbedTLSSession *session, unsigned char *buf , size_t len);
+```
 
 | 参数           | 描述    |
 | :-----         | :-----  |
@@ -80,7 +90,9 @@ SSL 层配置，应用程序使用 `mbedtls_client_context` 函数配置客户�
 
 ### 关闭 mbedtls 客户端
 
-> int mbedtls_client_close(MbedTLSSession *session);
+```c
+int mbedtls_client_close(MbedTLSSession *session);
+```
 
 客户端主动关闭连接或者因为异常错误关闭连接，都需要使用 `mbedtls_client_close` 关闭连接并释放资源。
 
@@ -95,7 +107,9 @@ SSL 层配置，应用程序使用 `mbedtls_client_context` 函数配置客户�
 
 ### 设置调试级别
 
-> void mbedtls_debug_set_threshold( int threshold );
+```c
+void mbedtls_debug_set_threshold( int threshold );
+```
 
 如果开启了 `MBEDTLS_DEBUG_C`，可以使用该函数设置调试级别，用于控制不同级别的调试日志输出。
 
@@ -119,7 +133,9 @@ mbedtls 定义了 5 种调试级别，如下所示：
 
 - **网络上下文初始化**
 
-> void mbedtls_net_init( mbedtls_net_context *ctx );
+```c
+void mbedtls_net_init( mbedtls_net_context *ctx );
+```
 
 初始化 TLS 网络上下文，目前只有 fd 描述符。
 
@@ -131,7 +147,9 @@ mbedtls 定义了 5 种调试级别，如下所示：
 
 - **SSL 上下文初始化**
 
-> void mbedtls_ssl_init( mbedtls_ssl_context *ssl );
+```c
+void mbedtls_ssl_init( mbedtls_ssl_context *ssl );
+```
 
 SSL 上下文初始化，主要是清空 SSL 上下文对象，为 SSL 连接做准备。
 
@@ -143,7 +161,9 @@ SSL 上下文初始化，主要是清空 SSL 上下文对象，为 SSL 连接做
 
 - **初始化 SSL 配置**
 
-> void mbedtls_ssl_config_init( mbedtls_ssl_config *conf );
+```c
+void mbedtls_ssl_config_init( mbedtls_ssl_config *conf );
+```
 
 SSL 配置初始化，主要是清空 SSL 配置结构体对象，为 SSL 连接做准备。
 
@@ -155,7 +175,9 @@ SSL 配置初始化，主要是清空 SSL 配置结构体对象，为 SSL 连接
 
 - **初始化 SSL 随机字节发生器**
 
-> void mbedtls_ctr_drbg_init( mbedtls_ctr_drbg_context *ctx );
+```c
+void mbedtls_ctr_drbg_init( mbedtls_ctr_drbg_context *ctx );
+```
 
 清空 CTR_DRBG（SSL 随机字节发生器）上下文结构体对象，为 `mbedtls_ctr_drbg_seed` 做准备。
 
@@ -167,7 +189,9 @@ SSL 配置初始化，主要是清空 SSL 配置结构体对象，为 SSL 连接
 
 - **初始化 SSL 熵**
 
-> void mbedtls_entropy_init( mbedtls_entropy_context *ctx );
+```c
+void mbedtls_entropy_init( mbedtls_entropy_context *ctx );
+```
 
 初始化 SSL 熵结构体对象。
 
@@ -201,7 +225,9 @@ int mbedtls_ctr_drbg_seed( mbedtls_ctr_drbg_context *ctx,
 
 - **设置根证书列表**
 
-> void mbedtls_x509_crt_init( mbedtls_x509_crt *crt );
+```c
+void mbedtls_x509_crt_init( mbedtls_x509_crt *crt );
+```
 
 初始化根证书链表。
 
@@ -213,7 +239,9 @@ int mbedtls_ctr_drbg_seed( mbedtls_ctr_drbg_context *ctx,
 
 - **解析根证书**
 
-> int mbedtls_x509_crt_parse( mbedtls_x509_crt *chain, const unsigned char *buf, size_t buflen );
+```c
+int mbedtls_x509_crt_parse( mbedtls_x509_crt *chain, const unsigned char *buf, size_t buflen );
+```
 
 解释性地解析。解析 buf 中一个或多个证书并将其添加到根证书链接列表中。如果可以解析某些证书，则结果是它遇到的失败证书的数量。 如果没有正确完成，则返回第一个错误。
 
@@ -229,7 +257,9 @@ int mbedtls_ctr_drbg_seed( mbedtls_ctr_drbg_context *ctx,
 
 - **设置主机名**
 
-> int mbedtls_ssl_set_hostname( mbedtls_ssl_context *ssl, const char *hostname );
+```c
+int mbedtls_ssl_set_hostname( mbedtls_ssl_context *ssl, const char *hostname );
+```
 
 注意，这里设置的 `hostname` 必须对应服务器证书中的 `common name`，即 CN 字段。
 
@@ -252,7 +282,10 @@ int mbedtls_ssl_config_defaults( mbedtls_ssl_config *conf,
 | 无             | 无 |
 
 - **设置证书验证模式**
-> void mbedtls_ssl_conf_authmode( mbedtls_ssl_config *conf, int authmode );
+
+```c
+void mbedtls_ssl_conf_authmode( mbedtls_ssl_config *conf, int authmode );
+```
 
 设置证书验证模式默认值：服务器上为 `MBEDTLS_SSL_VERIFY_NONE`，客户端上为 `MBEDTLS_SSL_VERIFY_REQUIRED` 或者 `MBEDTLS_SSL_VERIFY_OPTIONAL`（默认使用）。
 
@@ -365,7 +398,9 @@ void mbedtls_ssl_set_bio( mbedtls_ssl_context *ssl,
 
 - **SSL/TLS 握手接口**
 
-> int mbedtls_ssl_handshake( mbedtls_ssl_context *ssl );
+```c
+int mbedtls_ssl_handshake( mbedtls_ssl_context *ssl );
+```
 
 执行 SSL/TLS 握手操作。
 
@@ -383,7 +418,9 @@ void mbedtls_ssl_set_bio( mbedtls_ssl_context *ssl,
 
 - **获取证书验证结果**
 
-> uint32_t mbedtls_ssl_get_verify_result( const mbedtls_ssl_context *ssl );
+```c
+uint32_t mbedtls_ssl_get_verify_result( const mbedtls_ssl_context *ssl );
+```
 
 | 参数           | 描述    |
 | :-----         | :-----  |
@@ -416,7 +453,9 @@ int mbedtls_x509_crt_verify_info( char *buf, size_t size,
 
 **SSL/TLS 写函数**
 
-> int mbedtls_ssl_read( mbedtls_ssl_context *ssl, unsigned char *buf, size_t len );
+```c
+int mbedtls_ssl_read( mbedtls_ssl_context *ssl, unsigned char *buf, size_t len );
+```
 
 从 SLL/TLS 读取数据，最多读取 'len' 字节长度数据字节。
 
@@ -435,7 +474,9 @@ int mbedtls_x509_crt_verify_info( char *buf, size_t size,
 
 **SSL/TLS 读函数**
 
-> int mbedtls_ssl_write( mbedtls_ssl_context *ssl, const unsigned char *buf, size_t len );
+```c
+int mbedtls_ssl_write( mbedtls_ssl_context *ssl, const unsigned char *buf, size_t len );
+```
 
 向 SSL/TLS 写入数据，最多写入 'len' 字节长度数据。
 
