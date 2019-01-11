@@ -68,7 +68,7 @@ msh />date
 Thu Jan  1 00:00:06 1970
 ```
 
-    使用 **`date`** 设置当前时间，如下所示：
+使用 **`date`** 设置当前时间，如下所示：
 
 ```c
 msh />date 2018 08 02 12 23 00
@@ -90,7 +90,7 @@ RT-Thread online packages --->
             (cn.ntp.org.cn) NTP server name
 ```
 
-    使用命令 **`ntp_sync`** 同步网络时间
+使用命令 **`ntp_sync`** 同步网络时间
 
 ```c
 msh />ntp_sync
