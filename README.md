@@ -29,7 +29,7 @@ Apache License Version 2.0 协议许可。
 
 - 配置软件包并使能示例
 
-```shell
+```c
 RT-Thread online packages --->
     security packages  --->
             Select Root Certificate  --->      # 选择证书文件
@@ -44,15 +44,15 @@ RT-Thread online packages --->
 
 - 选择证书文件
 
-    ```shell
-    RT-Thread online packages --->
-        security packages  --->
-            [*] mbedtls: An portable and flexible SSL/TLS library  ---  # 打开 mbedtls 软件包
-                  Select Root Certificate  --->      # 选择证书文件
-                       [ ] Using all default CA(Use preset CA certificates. Take up more memory)
-                       [ ] Using user CA(copy your Root CA file to mbedtls package "certs" directory)
-                       [*] Using Digital Signature Trust Root CA # 测试例程需要使用的证书
-    ```
+```c
+RT-Thread online packages --->
+    security packages  --->
+        [*] mbedtls: An portable and flexible SSL/TLS library  ---  # 打开 mbedtls 软件包
+                Select Root Certificate  --->                       # 选择证书文件
+                    [ ] Using all default CA(Use preset CA certificates. Take up more memory)
+                    [ ] Using user CA(copy your Root CA file to mbedtls package "certs" directory)
+                    [*] Using Digital Signature Trust Root CA       # 测试例程需要使用的证书
+```
 
     - `Using all default CA` 配置选项会将 `certs/default` 目录下的所有预置证书加入编译，将占用很大的内存
     - `Using user CA` 配置选项允许用户将自己需要的证书文件加入编译，需要用户将证书文件拷贝到 `certs` 根目录
