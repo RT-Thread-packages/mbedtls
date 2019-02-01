@@ -220,7 +220,7 @@ int mbedtls_client_read(MbedTLSSession *session, unsigned char *buf , size_t len
     } 
 
     ret = mbedtls_ssl_read(&session->ssl, (unsigned char *)buf, len);
-    if (ret < 0)
+    if (ret < 0 && ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
     {
         LOG_E("mbedtls_client_read data error, return -0x%x", -ret);
     }
@@ -238,7 +238,7 @@ int mbedtls_client_write(MbedTLSSession *session, const unsigned char *buf , siz
     }
 
     ret = mbedtls_ssl_write(&session->ssl, (unsigned char *)buf, len);
-    if (ret < 0)
+    if (ret < 0 && ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
     {
         LOG_E("mbedtls_client_write data error, return -0x%x", -ret);
     }
