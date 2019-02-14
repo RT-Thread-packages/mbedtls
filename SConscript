@@ -100,7 +100,8 @@ KCONFIG_ROOT_CA_DICT = {'PKG_USING_MBEDTLS_THAWTE_ROOT_CA': 'THAWTE_ROOT_CA.cer'
                         'PKG_USING_MBEDTLS_COMODOR_ROOT_CA': 'COMODOR_ROOT_CA.cer', \
                         'PKG_USING_MBEDTLS_DST_ROOT_CA': 'DIGITAL_SIGNATURE_TRUST_ROOT_CA.cer', \
                         'PKG_USING_MBEDTLS_CLOBALSIGN_ROOT_CA': 'CLOBALSIGN_ROOT_CA.cer', \
-                        'PKG_USING_MBEDTLS_ENTRUST_ROOT_CA': 'ENTRUST_ROOT_CA.cer'}
+                        'PKG_USING_MBEDTLS_ENTRUST_ROOT_CA': 'ENTRUST_ROOT_CA.cer', \
+                        'PKG_USING_MBEDTLS_AMAZON_ROOT_CA': 'AMAZON_ROOT_CA.cer'}
 
 for key, value in KCONFIG_ROOT_CA_DICT.items():
     if GetDepend([key]):
