@@ -149,13 +149,16 @@ cwd + '/ports/inc',
 ]
 
 if rtconfig.CROSS_TOOL == 'gcc' or rtconfig.CROSS_TOOL == 'keil' or rtconfig.CROSS_TOOL == 'iar':
-    import shutil
-    cp_src = cwd + '/ports/inc/tls_config.h'
     cp_dst = cwd + '/mbedtls/include/mbedtls/config.h'
-    shutil.copyfile(cp_src, cp_dst)
+    try:
+        os.remove(cp_dst)
+    except:
+        pass
     CPPDEFINES = []
 else:
     CPPDEFINES = []
+
+CPPDEFINES += [r'MBEDTLS_CONFIG_FILE=\"tls_config.h\"']
 
 group = DefineGroup('mbedtls', src, depend = ['PKG_USING_MBEDTLS'], CPPPATH = CPPPATH, CPPDEFINES = CPPDEFINES)
 
