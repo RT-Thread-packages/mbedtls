@@ -17,7 +17,7 @@
  *
  */
 
-#include "certs.h"
+#include "mbedtls/certs.h"
 
 const char mbedtls_root_certificate[] = 
 "-----BEGIN CERTIFICATE-----\r\n" \

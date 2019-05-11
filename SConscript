@@ -24,7 +24,7 @@ cert_template = """
  *
  */
 
-#include "certs.h"
+#include "mbedtls/certs.h"
 
 const char mbedtls_root_certificate[] = 
 "-----BEGIN CERTIFICATE-----\\r\\n\" \\
@@ -145,7 +145,6 @@ if GetDepend(['PKG_USING_MBEDTLS_EXAMPLE']):
 
 CPPPATH = [
 cwd + '/mbedtls/include',
-cwd + '/mbedtls/include/mbedtls',
 cwd + '/ports/inc',
 ]
 
