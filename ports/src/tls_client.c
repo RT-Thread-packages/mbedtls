@@ -94,17 +94,17 @@ int mbedtls_client_close(MbedTLSSession *session)
     mbedtls_ctr_drbg_free(&session->ctr_drbg);
     mbedtls_ssl_config_free(&session->conf);
     mbedtls_ssl_free(&session->ssl);
-    
+
     if (session->buffer)
     {
         tls_free(session->buffer);
     }
-        
+
     if (session->host)
     {
         tls_free(session->host);
     }
-    
+
     if(session->port)
     {
         tls_free(session->port);
@@ -143,7 +143,7 @@ int mbedtls_client_context(MbedTLSSession *session)
             return ret;
         }
     }
-    
+
     ret = mbedtls_ssl_config_defaults(&session->conf,
                                           MBEDTLS_SSL_IS_CLIENT,
                                           MBEDTLS_SSL_TRANSPORT_STREAM,
@@ -153,7 +153,7 @@ int mbedtls_client_context(MbedTLSSession *session)
         LOG_E("mbedtls_ssl_config_defaults error, return -0x%x", -ret);
         return ret;
     }
-    
+
     mbedtls_ssl_conf_authmode(&session->conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
     mbedtls_ssl_conf_ca_chain(&session->conf, &session->cacert, NULL);
     mbedtls_ssl_conf_rng(&session->conf, mbedtls_ctr_drbg_random, &session->ctr_drbg);
@@ -167,7 +167,7 @@ int mbedtls_client_context(MbedTLSSession *session)
         return ret;
     }
     LOG_D("mbedtls client context init success...");
-        
+
     return RT_EOK;
 }
 

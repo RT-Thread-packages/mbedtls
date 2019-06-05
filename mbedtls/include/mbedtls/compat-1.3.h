@@ -5,7 +5,8 @@
  *  for the PolarSSL naming conventions.
  *
  * \deprecated Use the new names directly instead
- *
+ */
+/*
  *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
  *  SPDX-License-Identifier: Apache-2.0
  *
@@ -23,6 +24,12 @@
  *
  *  This file is part of mbed TLS (https://tls.mbed.org)
  */
+
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #if ! defined(MBEDTLS_DEPRECATED_REMOVED)
 

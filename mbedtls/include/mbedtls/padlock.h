@@ -3,7 +3,8 @@
  *
  * \brief VIA PadLock ACE for HW encryption/decryption supported by some
  *        processors
- *
+ */
+/*
  *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
  *  SPDX-License-Identifier: Apache-2.0
  *
@@ -23,6 +24,12 @@
  */
 #ifndef MBEDTLS_PADLOCK_H
 #define MBEDTLS_PADLOCK_H
+
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #include "aes.h"
 

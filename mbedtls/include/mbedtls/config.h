@@ -1,13 +1,14 @@
 /**
- * \file config.h
+ * \file tls_config.h
  *
  * \brief Configuration options (set of defines)
  *
  *  This set of compile-time options may be used to enable
  *  or disable features selectively, and reduce the global
  *  memory footprint.
- *
- *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ */
+/*
+ *  Copyright (C) 2006-2019, ARM Limited, All Rights Reserved
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -27,6 +28,9 @@
 
 #ifndef MBEDTLS_CONFIG_H
 #define MBEDTLS_CONFIG_H
+
+/* the memory allocation method configurations */
+#include <rtthread.h>
 
 #if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_DEPRECATE)
 #define _CRT_SECURE_NO_DEPRECATE 1
@@ -117,7 +121,7 @@
  *
  * Comment if your system does not have a correct clock.
  */
-#define MBEDTLS_HAVE_TIME_DATE
+// #define MBEDTLS_HAVE_TIME_DATE
 
 /**
  * \def MBEDTLS_PLATFORM_MEMORY
@@ -241,7 +245,7 @@
  * You will need to provide a header "timing_alt.h" and an implementation at
  * compile time.
  */
-//#define MBEDTLS_TIMING_ALT
+#define MBEDTLS_TIMING_ALT
 
 /**
  * \def MBEDTLS_AES_ALT
@@ -261,20 +265,49 @@
  *
  * Uncomment a macro to enable alternate implementation of the corresponding
  * module.
+ *
+ * \warning   MD2, MD4, MD5, ARC4, DES and SHA-1 are considered weak and their
+ *            use constitutes a security risk. If possible, we recommend
+ *            avoiding dependencies on them, and considering stronger message
+ *            digests and ciphers instead.
+ *
  */
-//#define MBEDTLS_AES_ALT
-//#define MBEDTLS_ARC4_ALT
+#if defined(RT_HWCRYPTO_USING_AES)
+#define MBEDTLS_AES_ALT
+#endif
+#if defined(RT_HWCRYPTO_USING_RC4)
+#define MBEDTLS_ARC4_ALT
+#endif
+#if defined(RT_HWCRYPTO_USING_DES) || defined(RT_HWCRYPTO_USING_3DES)
+#define MBEDTLS_DES_ALT
+#endif
+#if defined(RT_HWCRYPTO_USING_GCM)
+#define MBEDTLS_GCM_ALT
+#endif
+#ifdef RT_HWCRYPTO_USING_MD5
+#define MBEDTLS_MD5_ALT
+#endif
+#if defined(RT_HWCRYPTO_USING_BIGNUM)
+#define MBEDTLS_RSA_ALT
+#endif
+#if defined(RT_HWCRYPTO_USING_SHA1)
+#define MBEDTLS_SHA1_ALT
+#endif
+#if defined(RT_HWCRYPTO_USING_SHA2_256) || defined(RT_HWCRYPTO_USING_SHA2_224)
+#define MBEDTLS_SHA256_ALT
+#endif
+#if defined(RT_HWCRYPTO_USING_SHA2_512) || defined(RT_HWCRYPTO_USING_SHA2_384)
+#define MBEDTLS_SHA512_ALT
+#endif
+//#define MBEDTLS_DHM_ALT
+//#define MBEDTLS_ECJPAKE_ALT
 //#define MBEDTLS_BLOWFISH_ALT
 //#define MBEDTLS_CAMELLIA_ALT
-//#define MBEDTLS_DES_ALT
-//#define MBEDTLS_XTEA_ALT
-//#define MBEDTLS_MD2_ALT
-//#define MBEDTLS_MD4_ALT
-//#define MBEDTLS_MD5_ALT
+//#define MBEDTLS_CCM_ALT
+//#define MBEDTLS_CMAC_ALT
 //#define MBEDTLS_RIPEMD160_ALT
-//#define MBEDTLS_SHA1_ALT
-//#define MBEDTLS_SHA256_ALT
-//#define MBEDTLS_SHA512_ALT
+//#define MBEDTLS_XTEA_ALT
+
 /*
  * When replacing the elliptic curve module, pleace consider, that it is
  * implemented with two .c files:
@@ -314,6 +347,12 @@
  *
  * Uncomment a macro to enable alternate implementation of the corresponding
  * function.
+ *
+ * \warning   MD2, MD4, MD5, DES and SHA-1 are considered weak and their use
+ *            constitutes a security risk. If possible, we recommend avoiding
+ *            dependencies on them, and considering stronger message digests
+ *            and ciphers instead.
+ *
  */
 //#define MBEDTLS_MD2_PROCESS_ALT
 //#define MBEDTLS_MD4_PROCESS_ALT
@@ -329,6 +368,11 @@
 //#define MBEDTLS_AES_SETKEY_DEC_ALT
 //#define MBEDTLS_AES_ENCRYPT_ALT
 //#define MBEDTLS_AES_DECRYPT_ALT
+//#define MBEDTLS_ECDH_GEN_PUBLIC_ALT
+//#define MBEDTLS_ECDH_COMPUTE_SHARED_ALT
+//#define MBEDTLS_ECDSA_VERIFY_ALT
+//#define MBEDTLS_ECDSA_SIGN_ALT
+//#define MBEDTLS_ECDSA_GENKEY_ALT
 
 /**
  * \def MBEDTLS_ECP_INTERNAL_ALT
@@ -411,7 +455,7 @@
  *
  * Uncomment to use your own hardware entropy collector.
  */
-//#define MBEDTLS_ENTROPY_HARDWARE_ALT
+#define MBEDTLS_ENTROPY_HARDWARE_ALT
 
 /**
  * \def MBEDTLS_AES_ROM_TABLES
@@ -513,6 +557,9 @@
  *      MBEDTLS_TLS_DHE_RSA_WITH_DES_CBC_SHA
  *
  * Uncomment this macro to enable weak ciphersuites
+ *
+ * \warning   DES is considered a weak cipher and its use constitutes a
+ *            security risk. We recommend considering stronger ciphers instead.
  */
 //#define MBEDTLS_ENABLE_WEAK_CIPHERSUITES
 
@@ -528,6 +575,26 @@
  * Uncomment this macro to remove RC4 ciphersuites by default.
  */
 #define MBEDTLS_REMOVE_ARC4_CIPHERSUITES
+
+/**
+ * \def MBEDTLS_REMOVE_3DES_CIPHERSUITES
+ *
+ * Remove 3DES ciphersuites by default in SSL / TLS.
+ * This flag removes the ciphersuites based on 3DES from the default list as
+ * returned by mbedtls_ssl_list_ciphersuites(). However, it is still possible
+ * to enable (some of) them with mbedtls_ssl_conf_ciphersuites() by including
+ * them explicitly.
+ *
+ * A man-in-the-browser attacker can recover authentication tokens sent through
+ * a TLS connection using a 3DES based cipher suite (see "On the Practical
+ * (In-)Security of 64-bit Block Ciphers" by Karthikeyan Bhargavan and Gaëtan
+ * Leurent, see https://sweet32.info/SWEET32_CCS16.pdf). If this attack falls
+ * in your threat model or you are unsure, then you should keep this option
+ * enabled to remove 3DES based cipher suites.
+ *
+ * Comment this macro to keep 3DES in the default ciphersuite list.
+ */
+#define MBEDTLS_REMOVE_3DES_CIPHERSUITES
 
 /**
  * \def MBEDTLS_ECP_DP_SECP192R1_ENABLED
@@ -618,6 +685,13 @@
  *      MBEDTLS_TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256
  *      MBEDTLS_TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA
  *      MBEDTLS_TLS_DHE_PSK_WITH_RC4_128_SHA
+ *
+ * \warning    Using DHE constitutes a security risk as it
+ *             is not possible to validate custom DH parameters.
+ *             If possible, it is recommended users should consider
+ *             preferring other methods of key exchange.
+ *             See dhm.h for more details.
+ *
  */
 #define MBEDTLS_KEY_EXCHANGE_DHE_PSK_ENABLED
 
@@ -717,6 +791,13 @@
  *      MBEDTLS_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
  *      MBEDTLS_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA
  *      MBEDTLS_TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA
+ *
+ * \warning    Using DHE constitutes a security risk as it
+ *             is not possible to validate custom DH parameters.
+ *             If possible, it is recommended users should consider
+ *             preferring other methods of key exchange.
+ *             See dhm.h for more details.
+ *
  */
 #define MBEDTLS_KEY_EXCHANGE_DHE_RSA_ENABLED
 
@@ -903,7 +984,7 @@
  *
  * Uncomment this macro to disable the built-in platform entropy functions.
  */
-//#define MBEDTLS_NO_PLATFORM_ENTROPY
+#define MBEDTLS_NO_PLATFORM_ENTROPY
 
 /**
  * \def MBEDTLS_ENTROPY_FORCE_SHA256
@@ -1008,7 +1089,8 @@
 /**
  * \def MBEDTLS_RSA_NO_CRT
  *
- * Do not use the Chinese Remainder Theorem for the RSA private operation.
+ * Do not use the Chinese Remainder Theorem
+ * for the RSA private operation.
  *
  * Uncomment this macro to disable the use of CRT in RSA.
  *
@@ -1146,7 +1228,7 @@
 /**
  * \def MBEDTLS_SSL_RENEGOTIATION
  *
- * Disable support for TLS renegotiation.
+ * Enable support for TLS renegotiation.
  *
  * The two main uses of renegotiation are (1) refresh keys on long-lived
  * connections and (2) client authentication after the initial handshake.
@@ -1155,6 +1237,13 @@
  * misuse/misunderstand.
  *
  * Comment this to disable support for renegotiation.
+ *
+ * \note   Even if this option is disabled, both client and server are aware
+ *         of the Renegotiation Indication Extension (RFC 5746) used to
+ *         prevent the SSL renegotiation attack (see RFC 5746 Sect. 1).
+ *         (See \c mbedtls_ssl_conf_legacy_renegotiation for the
+ *          configuration of this extension).
+ *
  */
 #define MBEDTLS_SSL_RENEGOTIATION
 
@@ -1362,6 +1451,30 @@
  * Comment this macro to disable support for truncated HMAC in SSL
  */
 #define MBEDTLS_SSL_TRUNCATED_HMAC
+
+/**
+ * \def MBEDTLS_SSL_TRUNCATED_HMAC_COMPAT
+ *
+ * Fallback to old (pre-2.7), non-conforming implementation of the truncated
+ * HMAC extension which also truncates the HMAC key. Note that this option is
+ * only meant for a transitory upgrade period and is likely to be removed in
+ * a future version of the library.
+ *
+ * \warning The old implementation is non-compliant and has a security weakness
+ *          (2^80 brute force attack on the HMAC key used for a single,
+ *          uninterrupted connection). This should only be enabled temporarily
+ *          when (1) the use of truncated HMAC is essential in order to save
+ *          bandwidth, and (2) the peer is an Mbed TLS stack that doesn't use
+ *          the fixed implementation yet (pre-2.7).
+ *
+ * \deprecated This option is deprecated and will likely be removed in a
+ *             future version of Mbed TLS.
+ *
+ * Uncomment to fallback to old, non-compliant truncated HMAC implementation.
+ *
+ * Requires: MBEDTLS_SSL_TRUNCATED_HMAC
+ */
+//#define MBEDTLS_SSL_TRUNCATED_HMAC_COMPAT
 
 /**
  * \def MBEDTLS_THREADING_ALT
@@ -1596,6 +1709,11 @@
  *      MBEDTLS_TLS_RSA_WITH_RC4_128_MD5
  *      MBEDTLS_TLS_RSA_PSK_WITH_RC4_128_SHA
  *      MBEDTLS_TLS_PSK_WITH_RC4_128_SHA
+ *
+ * \warning   ARC4 is considered a weak cipher and its use constitutes a
+ *            security risk. If possible, we recommend avoidng dependencies on
+ *            it, and considering stronger ciphers instead.
+ *
  */
 #define MBEDTLS_ARC4_C
 
@@ -1649,6 +1767,7 @@
  *          library/ecp.c
  *          library/ecdsa.c
  *          library/rsa.c
+ *          library/rsa_internal.c
  *          library/ssl_tls.c
  *
  * This module is required for RSA, DHM and ECC (ECDH, ECDSA) support.
@@ -1796,7 +1915,10 @@
  *
  * This module provides debugging functions.
  */
+ 
+#ifdef PKG_USING_MBEDTLS_DEBUG
 #define MBEDTLS_DEBUG_C
+#endif
 
 /**
  * \def MBEDTLS_DES_C
@@ -1821,6 +1943,9 @@
  *      MBEDTLS_TLS_PSK_WITH_3DES_EDE_CBC_SHA
  *
  * PEM_PARSE uses DES/3DES for decrypting encrypted keys.
+ *
+ * \warning   DES is considered a weak cipher and its use constitutes a
+ *            security risk. We recommend considering stronger ciphers instead.
  */
 #define MBEDTLS_DES_C
 
@@ -1835,6 +1960,13 @@
  *
  * This module is used by the following key exchanges:
  *      DHE-RSA, DHE-PSK
+ *
+ * \warning    Using DHE constitutes a security risk as it
+ *             is not possible to validate custom DH parameters.
+ *             If possible, it is recommended users should consider
+ *             preferring other methods of key exchange.
+ *             See dhm.h for more details.
+ *
  */
 #define MBEDTLS_DHM_C
 
@@ -2000,6 +2132,11 @@
  * Caller:
  *
  * Uncomment to enable support for (rare) MD2-signed X.509 certs.
+ *
+ * \warning   MD2 is considered a weak message digest and its use constitutes a
+ *            security risk. If possible, we recommend avoiding dependencies on
+ *            it, and considering stronger message digests instead.
+ *
  */
 //#define MBEDTLS_MD2_C
 
@@ -2012,6 +2149,11 @@
  * Caller:
  *
  * Uncomment to enable support for (rare) MD4-signed X.509 certs.
+ *
+ * \warning   MD4 is considered a weak message digest and its use constitutes a
+ *            security risk. If possible, we recommend avoiding dependencies on
+ *            it, and considering stronger message digests instead.
+ *
  */
 //#define MBEDTLS_MD4_C
 
@@ -2025,8 +2167,15 @@
  *          library/pem.c
  *          library/ssl_tls.c
  *
- * This module is required for SSL/TLS and X.509.
- * PEM_PARSE uses MD5 for decrypting encrypted keys.
+ * This module is required for SSL/TLS up to version 1.1, and for TLS 1.2
+ * depending on the handshake parameters. Further, it is used for checking
+ * MD5-signed certificates, and for PBKDF1 when decrypting PEM-encoded
+ * encrypted keys.
+ *
+ * \warning   MD5 is considered a weak message digest and its use constitutes a
+ *            security risk. If possible, we recommend avoiding dependencies on
+ *            it, and considering stronger message digests instead.
+ *
  */
 #define MBEDTLS_MD5_C
 
@@ -2063,7 +2212,7 @@
  *
  * This module provides networking routines.
  */
-#define MBEDTLS_NET_C
+//#define MBEDTLS_NET_C
 
 /**
  * \def MBEDTLS_OID_C
@@ -2262,6 +2411,7 @@
  * Enable the RSA public-key cryptosystem.
  *
  * Module:  library/rsa.c
+ *          library/rsa_internal.c
  * Caller:  library/ssl_cli.c
  *          library/ssl_srv.c
  *          library/ssl_tls.c
@@ -2288,6 +2438,11 @@
  *
  * This module is required for SSL/TLS up to version 1.1, for TLS 1.2
  * depending on the handshake parameters, and for SHA1-signed certificates.
+ *
+ * \warning   SHA-1 is considered a weak message digest and its use constitutes
+ *            a security risk. If possible, we recommend avoiding dependencies
+ *            on it, and considering stronger message digests instead.
+ *
  */
 #define MBEDTLS_SHA1_C
 
@@ -2586,7 +2741,7 @@
 
 /* MPI / BIGNUM options */
 //#define MBEDTLS_MPI_WINDOW_SIZE            6 /**< Maximum windows size used. */
-//#define MBEDTLS_MPI_MAX_SIZE            1024 /**< Maximum number of bytes for usable MPIs. */
+//#define MBEDTLS_MPI_MAX_SIZE               256 /**< Maximum number of bytes for usable MPIs. */
 
 /* CTR_DRBG options */
 //#define MBEDTLS_CTR_DRBG_ENTROPY_LEN               48 /**< Amount of entropy used per seed by default (48 with SHA-512, 32 with SHA-256) */
@@ -2666,7 +2821,7 @@
  *
  * The value below is only an example, not the default.
  */
-//#define MBEDTLS_SSL_CIPHERSUITES MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+#define MBEDTLS_SSL_CIPHERSUITES MBEDTLS_TLS_RSA_WITH_AES_128_CBC_SHA256
 
 /* X509 options */
 //#define MBEDTLS_X509_MAX_INTERMEDIATE_CA   8   /**< Maximum number of intermediate CAs in a verification chain. */
@@ -2676,8 +2831,13 @@
  * Allow SHA-1 in the default TLS configuration for certificate signing.
  * Without this build-time option, SHA-1 support must be activated explicitly
  * through mbedtls_ssl_conf_cert_profile. Turning on this option is not
- * recommended because of it is possible to generte SHA-1 collisions, however
+ * recommended because of it is possible to generate SHA-1 collisions, however
  * this may be safe for legacy infrastructure where additional controls apply.
+ *
+ * \warning   SHA-1 is considered a weak message digest and its use constitutes
+ *            a security risk. If possible, we recommend avoiding dependencies
+ *            on it, and considering stronger message digests instead.
+ *
  */
 // #define MBEDTLS_TLS_DEFAULT_ALLOW_SHA1_IN_CERTIFICATES
 
@@ -2688,7 +2848,13 @@
  * The use of SHA-1 in TLS <= 1.1 and in HMAC-SHA-1 is always allowed by
  * default. At the time of writing, there is no practical attack on the use
  * of SHA-1 in handshake signatures, hence this option is turned on by default
- * for compatibility with existing peers.
+ * to preserve compatibility with existing peers, but the general
+ * warning applies nonetheless:
+ *
+ * \warning   SHA-1 is considered a weak message digest and its use constitutes
+ *            a security risk. If possible, we recommend avoiding dependencies
+ *            on it, and considering stronger message digests instead.
+ *
  */
 #define MBEDTLS_TLS_DEFAULT_ALLOW_SHA1_IN_KEY_EXCHANGE
 
@@ -2714,6 +2880,30 @@
 #include MBEDTLS_USER_CONFIG_FILE
 #endif
 
+/*
+ * !!!!! The following two macros are added to the porting code !!!!!
+ * !!!!! The following two macros are added to the porting code !!!!!
+ * !!!!! The following two macros are added to the porting code !!!!!
+ * 
+ * Upgraded version handles the following two macro definitions
+ * 
+ * These two macros are defined in the ctr_drbg.c file
+ *
+ * #if !defined(MBEDTLS_CTR_DRBG_BLOCKSIZE)
+ * #define MBEDTLS_CTR_DRBG_BLOCKSIZE          16
+ * #endif
+ * #if !defined(MBEDTLS_CTR_DRBG_KEYSIZE)
+ * #define MBEDTLS_CTR_DRBG_KEYSIZE            32
+ * #endif 
+ * 
+*/
+
 #include "check_config.h"
+
+#define tls_malloc  rt_malloc
+#define tls_free    rt_free
+#define tls_realloc rt_realloc
+#define tls_calloc  rt_calloc
+#define tls_strdup  rt_strdup
 
 #endif /* MBEDTLS_CONFIG_H */

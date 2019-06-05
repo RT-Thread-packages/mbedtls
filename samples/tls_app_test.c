@@ -57,6 +57,7 @@ static void mbedtls_client_entry(void *parament)
 
 #ifdef FINSH_USING_MSH
     rt_kprintf("Memory usage before the handshake connection is established:\r\n");
+    extern int msh_exec(char *cmd, rt_size_t length);
     msh_exec("free", rt_strlen("free"));
 #endif
     tls_session = (MbedTLSSession *) tls_malloc(sizeof(MbedTLSSession));
