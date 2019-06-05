@@ -2,7 +2,8 @@
  * \file havege.h
  *
  * \brief HAVEGE: HArdware Volatile Entropy Gathering and Expansion
- *
+ */
+/*
  *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
  *  SPDX-License-Identifier: Apache-2.0
  *
@@ -22,6 +23,12 @@
  */
 #ifndef MBEDTLS_HAVEGE_H
 #define MBEDTLS_HAVEGE_H
+
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #include <stddef.h>
 

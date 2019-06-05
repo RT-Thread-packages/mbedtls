@@ -121,7 +121,7 @@ if len(ROOT_CA_FILE) > 0:
             with open(ROOT_CA_FILE[i], 'r') as ca:
                 # Pre-read, check first line
                 if not ca.readline().startswith("-----BEGIN CERTIFICATE"):
-                    print "[mbedtls] Warning: ", ROOT_CA_FILE[i], "is not CA file! Skipped!"
+                    print("[mbedtls] Warning: ", ROOT_CA_FILE[i], "is not CA file! Skipped!")
                     continue
                 ca.seek(0)
                 for line in ca.readlines():
