@@ -52,6 +52,21 @@ static void _ssl_debug(void *ctx, int level, const char *file, int line, const c
     LOG_D("%s:%04d: %s", file, line, str);
 }
 
+static int mbedtls_ssl_certificate_verify(MbedTLSSession *session)
+{
+    int ret = 0;
+    ret = mbedtls_ssl_get_verify_result(&session->ssl);
+    if (ret != 0)
+    {
+        LOG_E("verify peer certificate fail....");
+        memset(session->buffer, 0x00, session->buffer_len);
+        mbedtls_x509_crt_verify_info((char *)session->buffer, session->buffer_len, "  ! ", ret);
+        LOG_E("verification info: %s", session->buffer);
+        return -RT_ERROR;
+    }
+    return RT_EOK;
+}
+
 int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLen)
 {
     int ret = 0;
@@ -154,7 +169,7 @@ int mbedtls_client_context(MbedTLSSession *session)
         return ret;
     }
 
-    mbedtls_ssl_conf_authmode(&session->conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
+    mbedtls_ssl_conf_authmode(&session->conf, MBEDTLS_SSL_VERIFY_REQUIRED);
     mbedtls_ssl_conf_ca_chain(&session->conf, &session->cacert, NULL);
     mbedtls_ssl_conf_rng(&session->conf, mbedtls_ctr_drbg_random, &session->ctr_drbg);
 
@@ -189,6 +204,10 @@ int mbedtls_client_connect(MbedTLSSession *session)
 
     while ((ret = mbedtls_ssl_handshake(&session->ssl)) != 0)
     {
+        if (RT_EOK != mbedtls_ssl_certificate_verify(session))
+        {
+            return -RT_ERROR;
+        }
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
         {
             LOG_E("mbedtls_ssl_handshake error, return -0x%x", -ret);
@@ -196,13 +215,9 @@ int mbedtls_client_connect(MbedTLSSession *session)
         }
     }
 
-    ret = mbedtls_ssl_get_verify_result(&session->ssl);
-    if (ret != 0)
+    if (RT_EOK != mbedtls_ssl_certificate_verify(session))
     {
-        LOG_E("verify peer certificate fail....");
-        memset(session->buffer, 0x00, session->buffer_len);
-        mbedtls_x509_crt_verify_info((char *)session->buffer, session->buffer_len, "  ! ", ret);
-        LOG_E("verification info: %s", session->buffer);
+        return -RT_ERROR;
     }
 
     LOG_D("Certificate verified success...");
