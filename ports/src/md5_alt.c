@@ -48,7 +48,7 @@ void mbedtls_md5_init(mbedtls_md5_context *ctx)
 {
     if (ctx)
     {
-        *ctx = rt_hwcrypto_hash_create(rt_hwcrypto_dev_dufault(), HWCRYPTO_TYPE_MD5);
+        *ctx = rt_hwcrypto_hash_create(rt_hwcrypto_dev_default(), HWCRYPTO_TYPE_MD5);
         LOG_D("md5 init ctx[%08x]", *ctx);
     }
     else

@@ -48,7 +48,7 @@ void mbedtls_sha512_init(mbedtls_sha512_context *ctx)
 {
     if (ctx)
     {
-        *ctx = rt_hwcrypto_hash_create(rt_hwcrypto_dev_dufault(), HWCRYPTO_TYPE_SHA2);
+        *ctx = rt_hwcrypto_hash_create(rt_hwcrypto_dev_default(), HWCRYPTO_TYPE_SHA2);
         LOG_D("sha2 init ctx[%08x]", *ctx);
     }
     else

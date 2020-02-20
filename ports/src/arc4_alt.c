@@ -48,7 +48,7 @@ void mbedtls_arc4_init(mbedtls_arc4_context *ctx)
 {
     if (ctx)
     {
-        *ctx = rt_hwcrypto_symmetric_create(rt_hwcrypto_dev_dufault(), HWCRYPTO_TYPE_RC4);
+        *ctx = rt_hwcrypto_symmetric_create(rt_hwcrypto_dev_default(), HWCRYPTO_TYPE_RC4);
         LOG_D("rc4 init ctx[%08x]", *ctx);
     }
     else

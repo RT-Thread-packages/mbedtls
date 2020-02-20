@@ -49,7 +49,7 @@ void mbedtls_des_init(mbedtls_des_context *ctx)
 {
     if (ctx)
     {
-        ctx->des_context = rt_hwcrypto_symmetric_create(rt_hwcrypto_dev_dufault(), HWCRYPTO_TYPE_DES);
+        ctx->des_context = rt_hwcrypto_symmetric_create(rt_hwcrypto_dev_default(), HWCRYPTO_TYPE_DES);
         LOG_D("des init ctx[%08x]", ctx->des_context);
     }
     else
@@ -75,7 +75,7 @@ void mbedtls_des3_init(mbedtls_des3_context *ctx)
 {
     if (ctx)
     {
-        ctx->des3_context = rt_hwcrypto_symmetric_create(rt_hwcrypto_dev_dufault(), HWCRYPTO_TYPE_3DES);
+        ctx->des3_context = rt_hwcrypto_symmetric_create(rt_hwcrypto_dev_default(), HWCRYPTO_TYPE_3DES);
         LOG_D("3des init ctx[%08x]", ctx->des3_context);
     }
     else
