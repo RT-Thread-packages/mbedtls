@@ -48,7 +48,7 @@ void mbedtls_aes_init(mbedtls_aes_context *ctx)
 {
     if (ctx)
     {
-        *ctx = rt_hwcrypto_symmetric_create(rt_hwcrypto_dev_dufault(), HWCRYPTO_TYPE_AES);
+        *ctx = rt_hwcrypto_symmetric_create(rt_hwcrypto_dev_default(), HWCRYPTO_TYPE_AES);
         LOG_D("aes init ctx[%08x]", *ctx);
     }
     else

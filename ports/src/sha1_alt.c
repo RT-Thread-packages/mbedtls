@@ -48,7 +48,7 @@ void mbedtls_sha1_init(mbedtls_sha1_context *ctx)
 {
     if (ctx)
     {
-        *ctx = rt_hwcrypto_hash_create(rt_hwcrypto_dev_dufault(), HWCRYPTO_TYPE_SHA1);
+        *ctx = rt_hwcrypto_hash_create(rt_hwcrypto_dev_default(), HWCRYPTO_TYPE_SHA1);
         LOG_D("sha1 init ctx[%08x]", *ctx);
     }
     else
