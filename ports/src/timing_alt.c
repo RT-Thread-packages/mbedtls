@@ -95,7 +95,7 @@ static void sighandler( int signum )
 
 unsigned int alarm(unsigned int seconds)
 {
-	return 0;
+    return 0;
 }
 
 void mbedtls_set_alarm( int seconds )

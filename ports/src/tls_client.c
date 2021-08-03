@@ -82,7 +82,7 @@ int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLe
     mbedtls_ctr_drbg_init(&session->ctr_drbg);
     mbedtls_entropy_init(&session->entropy);
     mbedtls_x509_crt_init(&session->cacert);
-    
+
     ret = mbedtls_ctr_drbg_seed(&session->ctr_drbg, mbedtls_entropy_func, &session->entropy,
                                      (unsigned char *)entropy, entropyLen);
     if (ret != 0)
@@ -126,18 +126,18 @@ int mbedtls_client_close(MbedTLSSession *session)
     }
 
     if (session)
-    {   
+    {
         tls_free(session);
         session = RT_NULL;
     }
-    
+
     return RT_EOK;
 }
 
 int mbedtls_client_context(MbedTLSSession *session)
 {
     int ret = 0;
- 
+
     ret = mbedtls_x509_crt_parse(&session->cacert, (const unsigned char *)mbedtls_root_certificate,
                                  mbedtls_root_certificate_len);
     if (ret < 0)
@@ -190,7 +190,7 @@ int mbedtls_client_connect(MbedTLSSession *session)
 {
     int ret = 0;
 
-    ret = mbedtls_net_connect(&session->server_fd, session->host, 
+    ret = mbedtls_net_connect(&session->server_fd, session->host,
                                 session->port, MBEDTLS_NET_PROTO_TCP);
     if (ret != 0)
     {
@@ -232,7 +232,7 @@ int mbedtls_client_read(MbedTLSSession *session, unsigned char *buf , size_t len
     if (session == RT_NULL || buf == RT_NULL)
     {
         return -RT_ERROR;
-    } 
+    }
 
     ret = mbedtls_ssl_read(&session->ssl, (unsigned char *)buf, len);
     if (ret < 0 && ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)

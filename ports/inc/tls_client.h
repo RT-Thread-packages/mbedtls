@@ -16,7 +16,7 @@
  *
  *  This file is part of mbed TLS (https://tls.mbed.org)
  */
- 
+
 #ifndef MBEDTLS_CLIENT_H
 #define MBEDTLS_CLIENT_H
 
@@ -34,7 +34,7 @@ typedef struct MbedTLSSession
 
     unsigned char *buffer;
     size_t buffer_len;
-    
+
     mbedtls_ssl_context ssl;
     mbedtls_ssl_config conf;
     mbedtls_entropy_context entropy;
@@ -42,7 +42,7 @@ typedef struct MbedTLSSession
     mbedtls_net_context server_fd;
     mbedtls_x509_crt cacert;
 }MbedTLSSession;
- 
+
  extern int mbedtls_client_init(MbedTLSSession *session, void *entropy, size_t entropyLen);
  extern int mbedtls_client_close(MbedTLSSession *session);
  extern int mbedtls_client_context(MbedTLSSession *session);

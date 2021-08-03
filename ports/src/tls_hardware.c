@@ -43,8 +43,8 @@ static int os_get_random(unsigned char *buf, size_t len)
             if ((i * 4 + j) < len)
             {
                 buf[i * 4 + j] = (unsigned char)(tmp >> (j * 8));
-            } 
-            else 
+            }
+            else
             {
                 break;
             }

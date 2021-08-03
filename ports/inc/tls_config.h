@@ -1915,7 +1915,7 @@
  *
  * This module provides debugging functions.
  */
- 
+
 #ifdef PKG_USING_MBEDTLS_DEBUG
 #define MBEDTLS_DEBUG_C
 #endif
@@ -2884,9 +2884,9 @@
  * !!!!! The following two macros are added to the porting code !!!!!
  * !!!!! The following two macros are added to the porting code !!!!!
  * !!!!! The following two macros are added to the porting code !!!!!
- * 
+ *
  * Upgraded version handles the following two macro definitions
- * 
+ *
  * These two macros are defined in the ctr_drbg.c file
  *
  * #if !defined(MBEDTLS_CTR_DRBG_BLOCKSIZE)
@@ -2894,8 +2894,8 @@
  * #endif
  * #if !defined(MBEDTLS_CTR_DRBG_KEYSIZE)
  * #define MBEDTLS_CTR_DRBG_KEYSIZE            32
- * #endif 
- * 
+ * #endif
+ *
 */
 
 #include "check_config.h"

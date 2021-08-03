@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2006-2018 RT-Thread Development Team. All rights reserved.
+ * Copyright (c) 2006-2021 RT-Thread Development Team. All rights reserved.
  * License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -19,7 +19,7 @@
 
 #include "mbedtls/certs.h"
 
-const char mbedtls_root_certificate[] = 
+const char mbedtls_root_certificate[] =
 "-----BEGIN CERTIFICATE-----\r\n" \
 "MIIDSjCCAjKgAwIBAgIQRK+wgNajJ7qJMDmGLvhAazANBgkqhkiG9w0BAQUFADA/\r\n" \
 "MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT\r\n" \
