@@ -20,7 +20,8 @@
  */
 #include <rtthread.h>
 #include <sys/time.h>
-
+#include <dfs_select.h>
+#include <sys/ioctl.h>
 #if !defined(MBEDTLS_CONFIG_FILE)
 #include "mbedtls/config.h"
 #else
