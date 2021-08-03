@@ -18,16 +18,13 @@
  *
  *  This file is part of mbed TLS (https://tls.mbed.org)
  */
-#include <rtthread.h>
-#include <sys/time.h>
+#include <rtconfig.h>
 
 #if !defined(MBEDTLS_CONFIG_FILE)
 #include "mbedtls/config.h"
 #else
 #include MBEDTLS_CONFIG_FILE
 #endif
-
-
 
 #include "tls_net.h"
 
@@ -56,13 +53,12 @@
 
 static int wsa_init_done = 0;
 
-#elif defined(RTTHREAD_VERSION)  /* ( _WIN32 || _WIN32_WCE ) && !EFIX64 && !EFI32 */
-
+#elif defined(__RTTHREAD__)
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/ioctl.h>
 #include <netdb.h>
-
 #include <rtthread.h>
 
 #define __socklen_t_defined
