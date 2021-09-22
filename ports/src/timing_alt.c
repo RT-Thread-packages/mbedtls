@@ -38,8 +38,13 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#if RT_VER_NUM >= 0x40004
+#include <sys/errno.h>
+#include <sys/signal.h>
+#else
 #include <signal.h>
 #include <time.h>
+#endif
 
 struct _hr_time
 {
