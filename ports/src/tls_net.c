@@ -61,6 +61,14 @@ static int wsa_init_done = 0;
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#if RT_VER_NUM >= 0x40004
+#include <sys/ioctl.h>
+#include <sys/errno.h>
+#include <fcntl.h>
+#else
+#include <dfs_select.h>
+#include <sys/ioctl.h>
+#endif
 #include <netdb.h>
 
 #include <rtthread.h>
