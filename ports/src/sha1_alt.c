@@ -160,7 +160,7 @@ int mbedtls_sha1_finish_ret(mbedtls_sha1_context *ctx, unsigned char output[20])
     if (ctx)
     {
         LOG_D("sha1 finish ctx[%08x] out:%08x", *ctx, output);
-        rt_hwcrypto_hash_finish(*ctx, output, 32);
+        rt_hwcrypto_hash_finish(*ctx, output, 20);
     }
     else
     {
