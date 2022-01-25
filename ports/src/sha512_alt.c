@@ -170,7 +170,7 @@ int mbedtls_sha512_finish_ret(mbedtls_sha512_context *ctx, unsigned char output[
     if (ctx)
     {
         LOG_D("sha2 finish ctx[%08x] out:%08x", *ctx, output);
-        rt_hwcrypto_hash_finish(*ctx, output, 32);
+        rt_hwcrypto_hash_finish(*ctx, output, 64);
     }
     else
     {
