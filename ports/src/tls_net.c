@@ -33,6 +33,12 @@
 
 #include <string.h>
 
+#if defined(_WIN32)
+#define SIGPIPE     13
+#endif
+
+#undef _WIN32
+
 #if (defined(_WIN32) || defined(_WIN32_WCE)) && !defined(EFIX64) && \
     !defined(EFI32)
 
