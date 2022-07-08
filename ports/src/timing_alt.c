@@ -46,6 +46,10 @@
 #include <time.h>
 #endif
 
+#ifdef _WIN32
+#define SIGALRM 14
+#endif
+
 struct _hr_time
 {
     struct timeval start;
