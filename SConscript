@@ -146,6 +146,7 @@ if GetDepend(['PKG_USING_MBEDTLS_EXAMPLE']):
 
 CPPPATH = [
 cwd + '/mbedtls/include',
+cwd + '/mbedtls/library',
 cwd + '/ports/inc',
 ]
 
