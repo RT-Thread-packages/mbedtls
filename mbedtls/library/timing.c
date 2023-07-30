@@ -1,7 +1,7 @@
 /*
  *  Portable interface to the CPU cycle counter
  *
- *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,15 +15,9 @@
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "common.h"
 
 #if defined(MBEDTLS_SELF_TEST) && defined(MBEDTLS_PLATFORM_C)
 #include "mbedtls/platform.h"
@@ -39,7 +33,8 @@
 #if !defined(MBEDTLS_TIMING_ALT)
 
 #if !defined(unix) && !defined(__unix__) && !defined(__unix) && \
-    !defined(__APPLE__) && !defined(_WIN32)
+    !defined(__APPLE__) && !defined(_WIN32) && !defined(__QNXNTO__) && \
+    !defined(__HAIKU__) && !defined(__midipix__)
 #error "This module only works on Unix and Windows, see MBEDTLS_TIMING_C in config.h"
 #endif
 
@@ -50,7 +45,6 @@
 #if defined(_WIN32) && !defined(EFIX64) && !defined(EFI32)
 
 #include <windows.h>
-#include <winbase.h>
 #include <process.h>
 
 struct _hr_time
@@ -62,15 +56,15 @@ struct _hr_time
 
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/time.h>
 #include <signal.h>
+/* time.h should be included independently of MBEDTLS_HAVE_TIME. If the
+ * platform matches the ifdefs above, it will be used. */
 #include <time.h>
-
+#include <sys/time.h>
 struct _hr_time
 {
     struct timeval start;
 };
-
 #endif /* _WIN32 && !EFIX64 && !EFI32 */
 
 #if !defined(HAVE_HARDCLOCK) && defined(MBEDTLS_HAVE_ASM) &&  \
@@ -370,7 +364,6 @@ int mbedtls_timing_get_delay( void *data )
     return( 0 );
 }
 
-#endif /* !MBEDTLS_TIMING_ALT */
 
 #if defined(MBEDTLS_SELF_TEST)
 
@@ -532,5 +525,5 @@ hard_test_done:
 }
 
 #endif /* MBEDTLS_SELF_TEST */
-
+#endif /* !MBEDTLS_TIMING_ALT */
 #endif /* MBEDTLS_TIMING_C */
