@@ -35,6 +35,10 @@
 #define DEBUG_LEVEL (2)
 #endif
 
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L    /* C99 or later */
+#include "mbedtls/debug.h"
+#endif
+
 #define DBG_ENABLE
 #define DBG_COLOR
 #define DBG_SECTION_NAME    "mbedtls.clnt"
