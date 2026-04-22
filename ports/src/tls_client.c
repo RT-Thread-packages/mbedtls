@@ -22,11 +22,6 @@
 
 #include <rtthread.h>
 
-#ifdef PKG_USING_MBEDTLS_CERTS_FROM_FS
-#include <dirent.h>
-#include <sys/stat.h>
-#endif
-
 #include "tls_client.h"
 #ifndef PKG_USING_MBEDTLS_CERTS_FROM_FS
 #include "tls_certificate.h"
@@ -55,143 +50,6 @@
 #define DBG_LEVEL           DBG_INFO
 #endif /* MBEDTLS_DEBUG_C */
 #include <rtdbg.h>
-
-#ifdef PKG_USING_MBEDTLS_CERTS_FROM_FS
-#ifndef PKG_MBEDTLS_CERTS_DIR
-#define PKG_MBEDTLS_CERTS_DIR "/certs"
-#endif
-
-#define TLS_CERT_MAX_PATH_LEN 256
-
-static int _mbedtls_load_one_ca_file(mbedtls_x509_crt *cacert, const char *cert_file)
-{
-    int ret = 0;
-    FILE *fp = RT_NULL;
-    long file_size = 0;
-    size_t read_size = 0;
-    unsigned char *buf = RT_NULL;
-    size_t parse_len = 0;
-
-    fp = fopen(cert_file, "rb");
-    if (fp == RT_NULL)
-    {
-        LOG_W("open cert file failed: %s", cert_file);
-        return -RT_ERROR;
-    }
-
-    if (fseek(fp, 0, SEEK_END) != 0)
-    {
-        fclose(fp);
-        return -RT_ERROR;
-    }
-
-    file_size = ftell(fp);
-    if (file_size <= 0)
-    {
-        fclose(fp);
-        return -RT_ERROR;
-    }
-
-    if (fseek(fp, 0, SEEK_SET) != 0)
-    {
-        fclose(fp);
-        return -RT_ERROR;
-    }
-
-    buf = tls_calloc(1, (size_t)file_size + 1);
-    if (buf == RT_NULL)
-    {
-        fclose(fp);
-        return -RT_ENOMEM;
-    }
-
-    read_size = fread(buf, 1, (size_t)file_size, fp);
-    fclose(fp);
-    if (read_size != (size_t)file_size)
-    {
-        tls_free(buf);
-        return -RT_ERROR;
-    }
-
-    {
-        const char pem_header[] = "-----BEGIN CERTIFICATE-----";
-        const size_t pem_header_len = sizeof(pem_header) - 1;
-
-        if (read_size >= pem_header_len && !memcmp(buf, pem_header, pem_header_len))
-        {
-            parse_len = read_size + 1;
-        }
-        else
-        {
-            parse_len = read_size;
-        }
-    }
-
-    ret = mbedtls_x509_crt_parse(cacert, buf, parse_len);
-    tls_free(buf);
-    if (ret < 0)
-    {
-        LOG_W("parse cert file failed: %s, ret: -0x%x", cert_file, -ret);
-        return ret;
-    }
-
-    return RT_EOK;
-}
-
-static int _mbedtls_load_ca_from_dir(mbedtls_x509_crt *cacert, const char *cert_dir)
-{
-    DIR *dir = RT_NULL;
-    struct dirent *ent = RT_NULL;
-    struct stat st;
-    char cert_path[TLS_CERT_MAX_PATH_LEN];
-    int loaded = 0;
-
-    dir = opendir(cert_dir);
-    if (dir == RT_NULL)
-    {
-        LOG_W("open cert directory failed: %s", cert_dir);
-        return -RT_ERROR;
-    }
-
-    while ((ent = readdir(dir)) != RT_NULL)
-    {
-        int path_len = 0;
-
-        if (!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, ".."))
-        {
-            continue;
-        }
-
-        path_len = rt_snprintf(cert_path, sizeof(cert_path), "%s/%s", cert_dir, ent->d_name);
-        if (path_len <= 0 || path_len >= sizeof(cert_path))
-        {
-            LOG_W("cert path too long, skip: %s", ent->d_name);
-            continue;
-        }
-
-        if (stat(cert_path, &st) != 0 || !S_ISREG(st.st_mode))
-        {
-            continue;
-        }
-
-        if (_mbedtls_load_one_ca_file(cacert, cert_path) == RT_EOK)
-        {
-            loaded++;
-        }
-    }
-
-    closedir(dir);
-
-    if (loaded == 0)
-    {
-        LOG_W("no valid certificate loaded from: %s", cert_dir);
-        return -RT_ERROR;
-    }
-
-    LOG_D("loaded %d certificate(s) from %s", loaded, cert_dir);
-    return RT_EOK;
-}
-#endif /* PKG_USING_MBEDTLS_CERTS_FROM_FS */
 
 static void _ssl_debug(void *ctx, int level, const char *file, int line, const char *str)
 {
@@ -287,8 +145,8 @@ int mbedtls_client_context(MbedTLSSession *session)
     int ret = 0;
 
 #ifdef PKG_USING_MBEDTLS_CERTS_FROM_FS
-    ret = _mbedtls_load_ca_from_dir(&session->cacert, PKG_MBEDTLS_CERTS_DIR);
-    if (ret != RT_EOK)
+    ret = mbedtls_x509_crt_parse_path(&session->cacert, PKG_MBEDTLS_CERTS_DIR);
+    if (ret < 0)
     {
         LOG_E("load certificates from directory failed: %s", PKG_MBEDTLS_CERTS_DIR);
         return ret;
