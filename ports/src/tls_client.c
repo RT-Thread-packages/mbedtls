@@ -113,13 +113,18 @@ static int _mbedtls_load_one_ca_file(mbedtls_x509_crt *cacert, const char *cert_
         return -RT_ERROR;
     }
 
-    if (!memcmp(buf, "-----BEGIN CERTIFICATE-----", sizeof("-----BEGIN CERTIFICATE-----") - 1))
     {
-        parse_len = read_size + 1;
-    }
-    else
-    {
-        parse_len = read_size;
+        const char pem_header[] = "-----BEGIN CERTIFICATE-----";
+        const size_t pem_header_len = sizeof(pem_header) - 1;
+
+        if (read_size >= pem_header_len && !memcmp(buf, pem_header, pem_header_len))
+        {
+            parse_len = read_size + 1;
+        }
+        else
+        {
+            parse_len = read_size;
+        }
     }
 
     ret = mbedtls_x509_crt_parse(cacert, buf, parse_len);
