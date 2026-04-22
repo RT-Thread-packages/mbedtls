@@ -145,11 +145,19 @@ int mbedtls_client_context(MbedTLSSession *session)
     int ret = 0;
 
 #ifdef PKG_USING_MBEDTLS_CERTS_FROM_FS
+#if !defined(MBEDTLS_FS_IO)
+#error "PKG_USING_MBEDTLS_CERTS_FROM_FS requires MBEDTLS_FS_IO to be enabled in mbedtls config"
+#endif
     ret = mbedtls_x509_crt_parse_path(&session->cacert, PKG_MBEDTLS_CERTS_DIR);
     if (ret < 0)
     {
         LOG_E("load certificates from directory failed: %s", PKG_MBEDTLS_CERTS_DIR);
         return ret;
+    }
+    else if (ret > 0)
+    {
+        LOG_W("%d certificate(s) in %s failed to parse", ret, PKG_MBEDTLS_CERTS_DIR);
+        ret = 0;
     }
 #else
     ret = mbedtls_x509_crt_parse(&session->cacert, (const unsigned char *)mbedtls_root_certificate,
