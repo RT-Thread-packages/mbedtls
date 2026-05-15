@@ -29,12 +29,9 @@
 
 #include <tls_certificate.h>
 #include <tls_client.h>
+#include "mbedtls/private_access.h"
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include <mbedtls/config.h>
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "mbedtls/build_info.h"
 
 // https://www.rt-thread.org/download/rt-thread.txt
 #define MBEDTLS_WEB_SERVER  "www.rt-thread.org"

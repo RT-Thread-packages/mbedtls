@@ -20,12 +20,27 @@
 #ifndef MBEDTLS_CLIENT_H
 #define MBEDTLS_CLIENT_H
 
+#include <rtthread.h>
+
 #include "mbedtls/platform.h"
-#include "mbedtls/net.h"
+#include "mbedtls/net_sockets.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
-#include "mbedtls/certs.h"
+#include "mbedtls/x509_crt.h"
+
+#ifndef tls_malloc
+#define tls_malloc  rt_malloc
+#endif
+#ifndef tls_free
+#define tls_free    rt_free
+#endif
+#ifndef tls_calloc
+#define tls_calloc  rt_calloc
+#endif
+#ifndef tls_strdup
+#define tls_strdup  rt_strdup
+#endif
 
 typedef struct MbedTLSSession
 {

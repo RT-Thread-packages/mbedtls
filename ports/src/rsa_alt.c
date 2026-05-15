@@ -37,21 +37,20 @@
  *
  */
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "common.h"
 
 #if defined(MBEDTLS_RSA_C)
 
 #include "mbedtls/rsa.h"
-#include "mbedtls/rsa_internal.h"
 #include "mbedtls/oid.h"
 #include <string.h>
 
 #include <rtthread.h>
 #include <rtdevice.h>
+
+#define DBG_SECTION_NAME "RSA_ALT"
+#define DBG_LEVEL DBG_INFO
+#include <rtdbg.h>
 
 #if defined(MBEDTLS_PKCS1_V21)
 #include "mbedtls/md.h"
@@ -71,6 +70,90 @@
 #endif
 
 #if defined(MBEDTLS_RSA_ALT)
+
+/*
+ * RSA ALT debug switches (single-file toggle):
+ * 1 = enabled, 0 = disabled.
+ */
+#ifndef MBEDTLS_RSA_ALT_ALLOW_SW_FALLBACK
+#define MBEDTLS_RSA_ALT_ALLOW_SW_FALLBACK    1
+#endif
+
+#ifndef MBEDTLS_RSA_ALT_VERIFY_HW_RESULT
+#define MBEDTLS_RSA_ALT_VERIFY_HW_RESULT     0
+#endif
+
+#ifndef MBEDTLS_RSA_ALT_DIAG_LOG
+#define MBEDTLS_RSA_ALT_DIAG_LOG             0
+#endif
+
+#ifndef MBEDTLS_RSA_ALT_FORCE_SW_OUTPUT
+#define MBEDTLS_RSA_ALT_FORCE_SW_OUTPUT      0
+#endif
+
+/*
+ * Hardware expmod modulus limit.
+ * Prefer configuring bits (e.g. 3136/4096) and convert to bytes locally.
+ * Legacy MBEDTLS_RSA_ALT_HW_MODEXP_MAX_BYTES is still accepted.
+ */
+#if defined(MBEDTLS_RSA_ALT_HW_MODEXP_MAX_BITS)
+#define MBEDTLS_RSA_ALT_HW_MODEXP_LIMIT_BYTES \
+    (((unsigned int)MBEDTLS_RSA_ALT_HW_MODEXP_MAX_BITS + 7U) / 8U)
+#elif defined(MBEDTLS_RSA_ALT_HW_MODEXP_MAX_BYTES)
+#define MBEDTLS_RSA_ALT_HW_MODEXP_LIMIT_BYTES \
+    ((unsigned int)MBEDTLS_RSA_ALT_HW_MODEXP_MAX_BYTES)
+#else
+#define MBEDTLS_RSA_ALT_HW_MODEXP_MAX_BITS 3136
+#define MBEDTLS_RSA_ALT_HW_MODEXP_LIMIT_BYTES \
+    (((unsigned int)MBEDTLS_RSA_ALT_HW_MODEXP_MAX_BITS + 7U) / 8U)
+#endif
+
+/*
+ * 0 = oversize length directly use software only
+ * 1 = keep trying hw path for evidence collection
+ */
+#ifndef MBEDTLS_RSA_ALT_OVERSIZE_HW_PROBE
+#define MBEDTLS_RSA_ALT_OVERSIZE_HW_PROBE 0
+#endif
+
+static rt_uint32_t g_rsa_alt_expmod_calls;
+static rt_uint32_t g_rsa_alt_expmod_hw_fail;
+static rt_uint32_t g_rsa_alt_expmod_mismatch;
+
+static void mbedtls_rsa_alt_diag_log(int force)
+{
+#if MBEDTLS_RSA_ALT_DIAG_LOG
+    if (force || ((g_rsa_alt_expmod_calls & 0x0FU) == 0U))
+    {
+        LOG_I("expmod: calls=%u hw_fail=%u mismatch=%u fallback=%u verify=%u",
+              (unsigned int)g_rsa_alt_expmod_calls,
+              (unsigned int)g_rsa_alt_expmod_hw_fail,
+              (unsigned int)g_rsa_alt_expmod_mismatch,
+              (unsigned int)MBEDTLS_RSA_ALT_ALLOW_SW_FALLBACK,
+              (unsigned int)MBEDTLS_RSA_ALT_VERIFY_HW_RESULT);
+    }
+#endif
+}
+
+/*
+ * Keep the 2.x RSA ALT core implementation and expose 3.x-compatible APIs
+ * through thin wrappers at the end of this file.
+ */
+#define mbedtls_rsa_init                          mbedtls_rsa_init_legacy
+#define mbedtls_rsa_set_padding                   mbedtls_rsa_set_padding_legacy
+#define mbedtls_rsa_rsaes_oaep_encrypt            mbedtls_rsa_rsaes_oaep_encrypt_legacy
+#define mbedtls_rsa_rsaes_pkcs1_v15_encrypt       mbedtls_rsa_rsaes_pkcs1_v15_encrypt_legacy
+#define mbedtls_rsa_pkcs1_encrypt                 mbedtls_rsa_pkcs1_encrypt_legacy
+#define mbedtls_rsa_rsaes_oaep_decrypt            mbedtls_rsa_rsaes_oaep_decrypt_legacy
+#define mbedtls_rsa_rsaes_pkcs1_v15_decrypt       mbedtls_rsa_rsaes_pkcs1_v15_decrypt_legacy
+#define mbedtls_rsa_pkcs1_decrypt                 mbedtls_rsa_pkcs1_decrypt_legacy
+#define mbedtls_rsa_rsassa_pss_sign               mbedtls_rsa_rsassa_pss_sign_legacy
+#define mbedtls_rsa_rsassa_pkcs1_v15_sign         mbedtls_rsa_rsassa_pkcs1_v15_sign_legacy
+#define mbedtls_rsa_pkcs1_sign                    mbedtls_rsa_pkcs1_sign_legacy
+#define mbedtls_rsa_rsassa_pss_verify_ext         mbedtls_rsa_rsassa_pss_verify_ext_legacy
+#define mbedtls_rsa_rsassa_pss_verify             mbedtls_rsa_rsassa_pss_verify_legacy
+#define mbedtls_rsa_rsassa_pkcs1_v15_verify       mbedtls_rsa_rsassa_pkcs1_v15_verify_legacy
+#define mbedtls_rsa_pkcs1_verify                  mbedtls_rsa_pkcs1_verify_legacy
 
 /* Implementation that should never be optimized out by the compiler */
 static void mbedtls_zeroize( void *v, size_t n ) {
@@ -93,36 +176,208 @@ static inline int mbedtls_safer_memcmp( const void *a, const void *b, size_t n )
 }
 #endif /* MBEDTLS_PKCS1_V15 */
 
+static void mbedtls_rsa_set_padding_legacy( mbedtls_rsa_context *ctx, int padding, int hash_id );
+
+/*
+ * mbed TLS 3.x no longer exports these helpers for RSA_ALT builds.
+ * Keep behavior minimal and deterministic for the legacy ALT core.
+ */
+static int mbedtls_rsa_deduce_primes( const mbedtls_mpi *N,
+                                      const mbedtls_mpi *E,
+                                      const mbedtls_mpi *D,
+                                      mbedtls_mpi *P,
+                                      mbedtls_mpi *Q )
+{
+    (void) N;
+    (void) E;
+    (void) D;
+    (void) P;
+    (void) Q;
+    return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
+}
+
+static int mbedtls_rsa_deduce_private_exponent( const mbedtls_mpi *P,
+                                                const mbedtls_mpi *Q,
+                                                const mbedtls_mpi *E,
+                                                mbedtls_mpi *D )
+{
+    int ret;
+    mbedtls_mpi P1, Q1, H;
+
+    mbedtls_mpi_init( &P1 );
+    mbedtls_mpi_init( &Q1 );
+    mbedtls_mpi_init( &H );
+
+    MBEDTLS_MPI_CHK( mbedtls_mpi_sub_int( &P1, P, 1 ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_sub_int( &Q1, Q, 1 ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_mul_mpi( &H, &P1, &Q1 ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_inv_mod( D, E, &H ) );
+
+cleanup:
+    mbedtls_mpi_free( &P1 );
+    mbedtls_mpi_free( &Q1 );
+    mbedtls_mpi_free( &H );
+    return ret;
+}
+
+static int mbedtls_rsa_deduce_crt( const mbedtls_mpi *P,
+                                   const mbedtls_mpi *Q,
+                                   const mbedtls_mpi *D,
+                                   mbedtls_mpi *DP,
+                                   mbedtls_mpi *DQ,
+                                   mbedtls_mpi *QP )
+{
+    int ret;
+    mbedtls_mpi K;
+
+    mbedtls_mpi_init( &K );
+
+    MBEDTLS_MPI_CHK( mbedtls_mpi_sub_int( &K, P, 1 ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_mod_mpi( DP, D, &K ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_sub_int( &K, Q, 1 ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_mod_mpi( DQ, D, &K ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_inv_mod( QP, Q, P ) );
+
+cleanup:
+    mbedtls_mpi_free( &K );
+    return ret;
+}
+
+static int mbedtls_rsa_validate_params( const mbedtls_mpi *N,
+                                        const mbedtls_mpi *P,
+                                        const mbedtls_mpi *Q,
+                                        const mbedtls_mpi *D,
+                                        const mbedtls_mpi *E,
+                                        const mbedtls_mpi *f,
+                                        const mbedtls_mpi *g )
+{
+    (void) N;
+    (void) P;
+    (void) Q;
+    (void) D;
+    (void) E;
+    (void) f;
+    (void) g;
+    return 0;
+}
+
+static int mbedtls_rsa_validate_crt( const mbedtls_mpi *P,
+                                     const mbedtls_mpi *Q,
+                                     const mbedtls_mpi *D,
+                                     const mbedtls_mpi *DP,
+                                     const mbedtls_mpi *DQ,
+                                     const mbedtls_mpi *QP )
+{
+    (void) P;
+    (void) Q;
+    (void) D;
+    (void) DP;
+    (void) DQ;
+    (void) QP;
+    return 0;
+}
+
 static int mbedtls_hw_add_mpi(mbedtls_mpi *X, const mbedtls_mpi *A, const mbedtls_mpi *B)
 {
 #if defined(RT_HWCRYPTO_USING_BIGNUM_ADD)
     struct hw_bignum_mpi a, b, x;
-    int X_n;
+    rt_uint8_t *buf = RT_NULL;
+    size_t len;
+    int ret;
 
+    rt_hwcrypto_bignum_init(&a);
+    rt_hwcrypto_bignum_init(&b);
     rt_hwcrypto_bignum_init(&x);
 
-    a.sign = A->s;
-    a.total = A->n * sizeof(mbedtls_mpi_uint);
-    a.p = (rt_uint8_t *)A->p;
+    len = mbedtls_mpi_size(A);
+    if (len == 0)
+    {
+        len = 1;
+    }
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        goto __exit;
+    }
 
-    b.sign = B->s;
-    b.total = B->n * sizeof(mbedtls_mpi_uint);
-    b.p = (rt_uint8_t *)B->p;
+    ret = mbedtls_mpi_write_binary(A, buf, len);
+    if (ret != 0)
+    {
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_import_bin(&a, buf, len) == 0)
+    {
+        ret = -1;
+        goto __exit;
+    }
+    a.sign = A->MBEDTLS_PRIVATE(s);
+
+    len = mbedtls_mpi_size(B);
+    if (len == 0)
+    {
+        len = 1;
+    }
+    rt_free(buf);
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        goto __exit;
+    }
+
+    ret = mbedtls_mpi_write_binary(B, buf, len);
+    if (ret != 0)
+    {
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_import_bin(&b, buf, len) == 0)
+    {
+        ret = -1;
+        goto __exit;
+    }
+    b.sign = B->MBEDTLS_PRIVATE(s);
 
     if (rt_hwcrypto_bignum_add(&x, &a, &b) != RT_EOK)
     {
-        return -1;
+        ret = -1;
+        goto __exit;
     }
-    X_n = (((x.total) + (sizeof(mbedtls_mpi_uint)) - 1) & ~((sizeof(mbedtls_mpi_uint)) - 1));
-    X_n /= sizeof(mbedtls_mpi_uint);
-    mbedtls_mpi_grow(X, X_n);
-    memset(X->p, 0, X->n * sizeof(mbedtls_mpi_uint));
-    memcpy(X->p, x.p, x.total);
-    X->s = x.sign;
 
+    len = rt_hwcrypto_bignum_get_len(&x);
+    if (len == 0)
+    {
+        len = 1;
+    }
+    rt_free(buf);
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_export_bin(&x, buf, (int)len) == 0)
+    {
+        ret = -1;
+        goto __exit;
+    }
+
+    ret = mbedtls_mpi_read_binary(X, buf, len);
+    if (ret == 0)
+    {
+        X->MBEDTLS_PRIVATE(s) = x.sign;
+    }
+
+__exit:
+    if (buf != RT_NULL)
+    {
+        rt_memset(buf, 0, len);
+        rt_free(buf);
+    }
+    rt_hwcrypto_bignum_free(&a);
+    rt_hwcrypto_bignum_free(&b);
     rt_hwcrypto_bignum_free(&x);
-
-    return 0;
+    return (ret == 0) ? 0 : -1;
 #else
     return mbedtls_mpi_add_mpi(X, A, B);
 #endif
@@ -132,32 +387,103 @@ static int mbedtls_hw_sub_mpi( mbedtls_mpi *X, const mbedtls_mpi *A, const mbedt
 {
 #if defined(RT_HWCRYPTO_USING_BIGNUM_SUB)
     struct hw_bignum_mpi a, b, x;
-    int X_n;
+    rt_uint8_t *buf = RT_NULL;
+    size_t len;
+    int ret;
 
+    rt_hwcrypto_bignum_init(&a);
+    rt_hwcrypto_bignum_init(&b);
     rt_hwcrypto_bignum_init(&x);
 
-    a.sign = A->s;
-    a.total = A->n * sizeof(mbedtls_mpi_uint);
-    a.p = (rt_uint8_t *)A->p;
+    len = mbedtls_mpi_size(A);
+    if (len == 0)
+    {
+        len = 1;
+    }
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        goto __exit;
+    }
 
-    b.sign = B->s;
-    b.total = B->n * sizeof(mbedtls_mpi_uint);
-    b.p = (rt_uint8_t *)B->p;
+    ret = mbedtls_mpi_write_binary(A, buf, len);
+    if (ret != 0)
+    {
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_import_bin(&a, buf, len) == 0)
+    {
+        ret = -1;
+        goto __exit;
+    }
+    a.sign = A->MBEDTLS_PRIVATE(s);
+
+    len = mbedtls_mpi_size(B);
+    if (len == 0)
+    {
+        len = 1;
+    }
+    rt_free(buf);
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        goto __exit;
+    }
+
+    ret = mbedtls_mpi_write_binary(B, buf, len);
+    if (ret != 0)
+    {
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_import_bin(&b, buf, len) == 0)
+    {
+        ret = -1;
+        goto __exit;
+    }
+    b.sign = B->MBEDTLS_PRIVATE(s);
 
     if (rt_hwcrypto_bignum_sub(&x, &a, &b) != RT_EOK)
     {
-        return -1;
+        ret = -1;
+        goto __exit;
     }
-    X_n = (((x.total) + (sizeof(mbedtls_mpi_uint)) - 1) & ~((sizeof(mbedtls_mpi_uint)) - 1));
-    X_n /= sizeof(mbedtls_mpi_uint);
-    mbedtls_mpi_grow(X, X_n);
-    memset(X->p, 0, X->n * sizeof(mbedtls_mpi_uint));
-    memcpy(X->p, x.p, x.total);
-    X->s = x.sign;
 
+    len = rt_hwcrypto_bignum_get_len(&x);
+    if (len == 0)
+    {
+        len = 1;
+    }
+    rt_free(buf);
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_export_bin(&x, buf, (int)len) == 0)
+    {
+        ret = -1;
+        goto __exit;
+    }
+
+    ret = mbedtls_mpi_read_binary(X, buf, len);
+    if (ret == 0)
+    {
+        X->MBEDTLS_PRIVATE(s) = x.sign;
+    }
+
+__exit:
+    if (buf != RT_NULL)
+    {
+        rt_memset(buf, 0, len);
+        rt_free(buf);
+    }
+    rt_hwcrypto_bignum_free(&a);
+    rt_hwcrypto_bignum_free(&b);
     rt_hwcrypto_bignum_free(&x);
-
-    return 0;
+    return (ret == 0) ? 0 : -1;
 #else
     return mbedtls_mpi_sub_mpi(X, A, B);
 #endif
@@ -167,32 +493,103 @@ static int mbedtls_hw_mul_mpi( mbedtls_mpi *X, const mbedtls_mpi *A, const mbedt
 {
 #if defined(RT_HWCRYPTO_USING_BIGNUM_MUL)
     struct hw_bignum_mpi a, b, x;
-    int X_n;
+    rt_uint8_t *buf = RT_NULL;
+    size_t len;
+    int ret;
 
+    rt_hwcrypto_bignum_init(&a);
+    rt_hwcrypto_bignum_init(&b);
     rt_hwcrypto_bignum_init(&x);
 
-    a.sign = A->s;
-    a.total = A->n * sizeof(mbedtls_mpi_uint);
-    a.p = (rt_uint8_t *)A->p;
+    len = mbedtls_mpi_size(A);
+    if (len == 0)
+    {
+        len = 1;
+    }
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        goto __exit;
+    }
 
-    b.sign = B->s;
-    b.total = B->n * sizeof(mbedtls_mpi_uint);
-    b.p = (rt_uint8_t *)B->p;
+    ret = mbedtls_mpi_write_binary(A, buf, len);
+    if (ret != 0)
+    {
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_import_bin(&a, buf, len) == 0)
+    {
+        ret = -1;
+        goto __exit;
+    }
+    a.sign = A->MBEDTLS_PRIVATE(s);
+
+    len = mbedtls_mpi_size(B);
+    if (len == 0)
+    {
+        len = 1;
+    }
+    rt_free(buf);
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        goto __exit;
+    }
+
+    ret = mbedtls_mpi_write_binary(B, buf, len);
+    if (ret != 0)
+    {
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_import_bin(&b, buf, len) == 0)
+    {
+        ret = -1;
+        goto __exit;
+    }
+    b.sign = B->MBEDTLS_PRIVATE(s);
 
     if (rt_hwcrypto_bignum_mul(&x, &a, &b) != RT_EOK)
     {
-        return -1;
+        ret = -1;
+        goto __exit;
     }
-    X_n = (((x.total) + (sizeof(mbedtls_mpi_uint)) - 1) & ~((sizeof(mbedtls_mpi_uint)) - 1));
-    X_n /= sizeof(mbedtls_mpi_uint);
-    mbedtls_mpi_grow(X, X_n);
-    memset(X->p, 0, X->n * sizeof(mbedtls_mpi_uint));
-    memcpy(X->p, x.p, x.total);
-    X->s = x.sign;
 
+    len = rt_hwcrypto_bignum_get_len(&x);
+    if (len == 0)
+    {
+        len = 1;
+    }
+    rt_free(buf);
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_export_bin(&x, buf, (int)len) == 0)
+    {
+        ret = -1;
+        goto __exit;
+    }
+
+    ret = mbedtls_mpi_read_binary(X, buf, len);
+    if (ret == 0)
+    {
+        X->MBEDTLS_PRIVATE(s) = x.sign;
+    }
+
+__exit:
+    if (buf != RT_NULL)
+    {
+        rt_memset(buf, 0, len);
+        rt_free(buf);
+    }
+    rt_hwcrypto_bignum_free(&a);
+    rt_hwcrypto_bignum_free(&b);
     rt_hwcrypto_bignum_free(&x);
-
-    return 0;
+    return (ret == 0) ? 0 : -1;
 #else
     return mbedtls_mpi_mul_mpi(X, A, B);
 #endif
@@ -203,36 +600,370 @@ static int mbedtls_hw_exp_mod(mbedtls_mpi *X, const mbedtls_mpi *A, const mbedtl
 {
 #if defined(RT_HWCRYPTO_USING_BIGNUM_EXPTMOD)
     struct hw_bignum_mpi a, b, c, x;
-    int X_n;
+    mbedtls_mpi sw;
+    mbedtls_mpi a_saved;
+    rt_uint8_t *buf = RT_NULL;
+    size_t n_len;
+    size_t a_len_meta;
+    size_t e_len_meta;
+    size_t len;
+    int ret;
+    int a_left_padded;
+    int sw_ready = 0;
+    const mbedtls_mpi *a_sw = A;
+    const char *fail_stage = "none";
 
+    (void)_RR;
+
+    rt_hwcrypto_bignum_init(&a);
+    rt_hwcrypto_bignum_init(&b);
+    rt_hwcrypto_bignum_init(&c);
     rt_hwcrypto_bignum_init(&x);
+    mbedtls_mpi_init(&sw);
+    mbedtls_mpi_init(&a_saved);
+    g_rsa_alt_expmod_calls++;
 
-    a.sign = A->s;
-    a.total = A->n * sizeof(mbedtls_mpi_uint);
-    a.p = (rt_uint8_t *)A->p;
+    n_len = mbedtls_mpi_size(N);
+    if (n_len == 0)
+    {
+        n_len = 1;
+    }
 
-    b.sign = E->s;
-    b.total = E->n * sizeof(mbedtls_mpi_uint);
-    b.p = (rt_uint8_t *)E->p;
+    /*
+     * mbedtls_rsa_public/private can call exp_mod with X == A (in-place).
+     * Preserve original A so software verify/fallback always uses true input.
+     */
+    if (X == A)
+    {
+        ret = mbedtls_mpi_copy(&a_saved, A);
+        if (ret != 0)
+        {
+            fail_stage = "copy-a";
+            goto __exit;
+        }
+        a_sw = &a_saved;
+    }
 
-    c.sign = N->s;
-    c.total = N->n * sizeof(mbedtls_mpi_uint);
-    c.p = (rt_uint8_t *)N->p;
+    if (n_len > MBEDTLS_RSA_ALT_HW_MODEXP_LIMIT_BYTES)
+    {
+#if MBEDTLS_RSA_ALT_OVERSIZE_HW_PROBE
+#if MBEDTLS_RSA_ALT_DIAG_LOG
+        LOG_I("expmod oversize hw-probe: n_len=%u hw_max=%u",
+              (unsigned int)n_len,
+              (unsigned int)MBEDTLS_RSA_ALT_HW_MODEXP_LIMIT_BYTES);
+#endif
+#else
+#if MBEDTLS_RSA_ALT_DIAG_LOG
+        LOG_I("expmod sw-only: n_len=%u hw_max=%u",
+              (unsigned int)n_len,
+              (unsigned int)MBEDTLS_RSA_ALT_HW_MODEXP_LIMIT_BYTES);
+#endif
+        ret = mbedtls_mpi_exp_mod(X, a_sw, E, N, RT_NULL);
+        if (ret != 0)
+        {
+            fail_stage = "sw-oversize";
+        }
+        goto __exit;
+#endif
+    }
+
+    a_len_meta = mbedtls_mpi_size(A);
+    e_len_meta = mbedtls_mpi_size(E);
+    a_left_padded = (a_len_meta < n_len) ? 1 : 0;
+
+#if MBEDTLS_RSA_ALT_DIAG_LOG
+    LOG_I("expmod meta: call=%u a_len=%u e_len=%u n_len=%u a_pad=%u force_sw=%u",
+          (unsigned int)g_rsa_alt_expmod_calls,
+          (unsigned int)a_len_meta,
+          (unsigned int)e_len_meta,
+          (unsigned int)n_len,
+          (unsigned int)a_left_padded,
+          (unsigned int)MBEDTLS_RSA_ALT_FORCE_SW_OUTPUT);
+#endif
+
+    /*
+     * Some hw bignum backends are more stable when operand A uses
+     * the same byte width as modulus N (left-padded with zeros).
+     */
+    len = n_len;
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        fail_stage = "alloc-a";
+        goto __exit;
+    }
+
+    ret = mbedtls_mpi_write_binary(A, buf, len);
+    if (ret != 0)
+    {
+        fail_stage = "write-a";
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_import_bin(&a, buf, len) == 0)
+    {
+        ret = -1;
+        fail_stage = "import-a";
+        goto __exit;
+    }
+    a.sign = A->MBEDTLS_PRIVATE(s);
+
+    len = e_len_meta;
+    if (len == 0)
+    {
+        len = 1;
+    }
+    rt_free(buf);
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        fail_stage = "alloc-e";
+        goto __exit;
+    }
+
+    ret = mbedtls_mpi_write_binary(E, buf, len);
+    if (ret != 0)
+    {
+        fail_stage = "write-e";
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_import_bin(&b, buf, len) == 0)
+    {
+        ret = -1;
+        fail_stage = "import-e";
+        goto __exit;
+    }
+    b.sign = E->MBEDTLS_PRIVATE(s);
+
+    len = n_len;
+    rt_free(buf);
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        fail_stage = "alloc-n";
+        goto __exit;
+    }
+
+    ret = mbedtls_mpi_write_binary(N, buf, len);
+    if (ret != 0)
+    {
+        fail_stage = "write-n";
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_import_bin(&c, buf, len) == 0)
+    {
+        ret = -1;
+        fail_stage = "import-n";
+        goto __exit;
+    }
+    c.sign = N->MBEDTLS_PRIVATE(s);
 
     if (rt_hwcrypto_bignum_exptmod(&x, &a, &b, &c) != RT_EOK)
     {
-        return -1;
+    #if MBEDTLS_RSA_ALT_ALLOW_SW_FALLBACK
+        ret = -1;
+        fail_stage = "hw-expmod";
+    #else
+        ret = -1;
+        fail_stage = "hw-expmod";
+    #endif
+        goto __exit;
     }
-    X_n = (((x.total) + (sizeof(mbedtls_mpi_uint)) - 1) & ~((sizeof(mbedtls_mpi_uint)) - 1));
-    X_n /= sizeof(mbedtls_mpi_uint);
-    mbedtls_mpi_grow(X, X_n);
-    memset(X->p, 0, X->n * sizeof(mbedtls_mpi_uint));
-    memcpy(X->p, x.p, x.total);
-    X->s = x.sign;
 
+    len = rt_hwcrypto_bignum_get_len(&x);
+    if (len == 0)
+    {
+        len = 1;
+    }
+    rt_free(buf);
+    buf = (rt_uint8_t *)rt_malloc(len);
+    if (buf == RT_NULL)
+    {
+        ret = -1;
+        fail_stage = "alloc-out";
+        goto __exit;
+    }
+    if (rt_hwcrypto_bignum_export_bin(&x, buf, (int)len) == 0)
+    {
+        ret = -1;
+        fail_stage = "export-out";
+        goto __exit;
+    }
+
+    ret = mbedtls_mpi_read_binary(X, buf, len);
+    if (ret != 0)
+    {
+        fail_stage = "read-out";
+        goto __exit;
+    }
+
+    X->MBEDTLS_PRIVATE(s) = x.sign;
+
+#if MBEDTLS_RSA_ALT_VERIFY_HW_RESULT
+    ret = mbedtls_mpi_exp_mod(&sw, a_sw, E, N, RT_NULL);
+    if (ret != 0)
+    {
+        fail_stage = "sw-verify";
+        goto __exit;
+    }
+    sw_ready = 1;
+
+    if (mbedtls_mpi_cmp_mpi(X, &sw) != 0)
+    {
+        unsigned char *hw_bin = RT_NULL;
+        unsigned char *sw_bin = RT_NULL;
+        size_t diff_i = 0;
+
+#if MBEDTLS_RSA_ALT_DIAG_LOG
+        hw_bin = (unsigned char *)rt_malloc(n_len);
+        sw_bin = (unsigned char *)rt_malloc(n_len);
+        if ((hw_bin != RT_NULL) && (sw_bin != RT_NULL) &&
+            (mbedtls_mpi_write_binary(X, hw_bin, n_len) == 0) &&
+            (mbedtls_mpi_write_binary(&sw, sw_bin, n_len) == 0))
+        {
+            if ((n_len > 1U) && (memcmp(hw_bin + 1, sw_bin + 1, n_len - 1U) == 0))
+            {
+                LOG_W("mismatch pattern: only-msb-diff hw0=%02x sw0=%02x n_len=%u",
+                      (unsigned int)hw_bin[0],
+                      (unsigned int)sw_bin[0],
+                      (unsigned int)n_len);
+            }
+
+            if ((n_len > 1U) && (memcmp(hw_bin + 1, sw_bin, n_len - 1U) == 0))
+            {
+                LOG_W("mismatch pattern: hw-shift-left-1 hw0=%02x sw0=%02x n_len=%u",
+                      (unsigned int)hw_bin[0],
+                      (unsigned int)sw_bin[0],
+                      (unsigned int)n_len);
+            }
+
+            if ((n_len > 1U) && (memcmp(hw_bin, sw_bin + 1, n_len - 1U) == 0))
+            {
+                LOG_W("mismatch pattern: hw-shift-right-1 hw0=%02x sw0=%02x n_len=%u",
+                      (unsigned int)hw_bin[0],
+                      (unsigned int)sw_bin[0],
+                      (unsigned int)n_len);
+            }
+
+            if (n_len >= 4U)
+            {
+                LOG_W("mismatch head4: hw=%02x%02x%02x%02x sw=%02x%02x%02x%02x",
+                      (unsigned int)hw_bin[0],
+                      (unsigned int)hw_bin[1],
+                      (unsigned int)hw_bin[2],
+                      (unsigned int)hw_bin[3],
+                      (unsigned int)sw_bin[0],
+                      (unsigned int)sw_bin[1],
+                      (unsigned int)sw_bin[2],
+                      (unsigned int)sw_bin[3]);
+
+                LOG_W("mismatch tail4: hw=%02x%02x%02x%02x sw=%02x%02x%02x%02x",
+                      (unsigned int)hw_bin[n_len - 4U],
+                      (unsigned int)hw_bin[n_len - 3U],
+                      (unsigned int)hw_bin[n_len - 2U],
+                      (unsigned int)hw_bin[n_len - 1U],
+                      (unsigned int)sw_bin[n_len - 4U],
+                      (unsigned int)sw_bin[n_len - 3U],
+                      (unsigned int)sw_bin[n_len - 2U],
+                      (unsigned int)sw_bin[n_len - 1U]);
+            }
+
+            for (diff_i = 0; diff_i < n_len; diff_i++)
+            {
+                if (hw_bin[diff_i] != sw_bin[diff_i])
+                {
+                    LOG_W("mismatch diff: idx=%u hw=%02x sw=%02x hw_sz=%u sw_sz=%u",
+                          (unsigned int)diff_i,
+                          (unsigned int)hw_bin[diff_i],
+                          (unsigned int)sw_bin[diff_i],
+                          (unsigned int)mbedtls_mpi_size(X),
+                          (unsigned int)mbedtls_mpi_size(&sw));
+                    break;
+                }
+            }
+        }
+        if (hw_bin != RT_NULL)
+        {
+            rt_memset(hw_bin, 0, n_len);
+            rt_free(hw_bin);
+        }
+        if (sw_bin != RT_NULL)
+        {
+            rt_memset(sw_bin, 0, n_len);
+            rt_free(sw_bin);
+        }
+#endif
+
+#if MBEDTLS_RSA_ALT_ALLOW_SW_FALLBACK
+        g_rsa_alt_expmod_mismatch++;
+        ret = -1;
+        fail_stage = "mismatch";
+#else
+        g_rsa_alt_expmod_mismatch++;
+        ret = -1;
+        fail_stage = "mismatch";
+#endif
+        if (ret != 0)
+        {
+            goto __exit;
+        }
+    }
+#endif
+
+#if MBEDTLS_RSA_ALT_ALLOW_SW_FALLBACK && MBEDTLS_RSA_ALT_FORCE_SW_OUTPUT
+    if (!sw_ready)
+    {
+        ret = mbedtls_mpi_exp_mod(&sw, a_sw, E, N, RT_NULL);
+        if (ret != 0)
+        {
+            fail_stage = "sw-force";
+            goto __exit;
+        }
+        sw_ready = 1;
+    }
+
+    ret = mbedtls_mpi_copy(X, &sw);
+    if (ret != 0)
+    {
+        fail_stage = "sw-copy";
+        goto __exit;
+    }
+#endif
+
+    ret = 0;
+
+__exit:
+#if MBEDTLS_RSA_ALT_ALLOW_SW_FALLBACK
+    if (ret != 0)
+    {
+        int sw_ret;
+        g_rsa_alt_expmod_hw_fail++;
+        sw_ret = mbedtls_mpi_exp_mod(X, a_sw, E, N, RT_NULL);
+        if (sw_ret == 0)
+        {
+            ret = 0;
+        }
+#if MBEDTLS_RSA_ALT_DIAG_LOG
+    LOG_W("expmod fallback stage=%s sw_ret=%d", fail_stage, sw_ret);
+#endif
+        mbedtls_rsa_alt_diag_log(1);
+    }
+#endif
+
+    if (buf != RT_NULL)
+    {
+        rt_memset(buf, 0, len);
+        rt_free(buf);
+    }
+    mbedtls_mpi_free(&a_saved);
+    mbedtls_mpi_free(&sw);
+    rt_hwcrypto_bignum_free(&a);
+    rt_hwcrypto_bignum_free(&b);
+    rt_hwcrypto_bignum_free(&c);
     rt_hwcrypto_bignum_free(&x);
-
-    return 0;
+    return (ret == 0) ? 0 : -1;
 #else
     return mbedtls_mpi_exp_mod(X, A, E, N, RT_NULL);
 #endif
@@ -861,7 +1592,7 @@ static int rsa_prepare_blinding( mbedtls_rsa_context *ctx,
 {
     int ret, count = 0;
 
-    if( ctx->Vf.p != NULL )
+    if( ctx->Vf.MBEDTLS_PRIVATE(p) != NULL )
     {
         /* We already have blinding values, just update them by squaring */
         MBEDTLS_MPI_CHK( mbedtls_hw_mul_mpi( &ctx->Vi, &ctx->Vi, &ctx->Vi ) );
@@ -1160,7 +1891,7 @@ static int mgf_mask( unsigned char *dst, size_t dlen, unsigned char *src,
     memset( mask, 0, MBEDTLS_MD_MAX_SIZE );
     memset( counter, 0, 4 );
 
-    hlen = mbedtls_md_get_size( md_ctx->md_info );
+    hlen = mbedtls_md_get_size( mbedtls_md_info_from_ctx( md_ctx ) );
 
     /* Generate and apply dbMask */
     p = dst;
@@ -2407,6 +3138,283 @@ int mbedtls_rsa_pkcs1_verify( mbedtls_rsa_context *ctx,
         default:
             return( MBEDTLS_ERR_RSA_INVALID_PADDING );
     }
+}
+
+#undef mbedtls_rsa_init
+#undef mbedtls_rsa_set_padding
+#undef mbedtls_rsa_rsaes_oaep_encrypt
+#undef mbedtls_rsa_rsaes_pkcs1_v15_encrypt
+#undef mbedtls_rsa_pkcs1_encrypt
+#undef mbedtls_rsa_rsaes_oaep_decrypt
+#undef mbedtls_rsa_rsaes_pkcs1_v15_decrypt
+#undef mbedtls_rsa_pkcs1_decrypt
+#undef mbedtls_rsa_rsassa_pss_sign
+#undef mbedtls_rsa_rsassa_pkcs1_v15_sign
+#undef mbedtls_rsa_pkcs1_sign
+#undef mbedtls_rsa_rsassa_pss_verify_ext
+#undef mbedtls_rsa_rsassa_pss_verify
+#undef mbedtls_rsa_rsassa_pkcs1_v15_verify
+#undef mbedtls_rsa_pkcs1_verify
+
+void mbedtls_rsa_init( mbedtls_rsa_context *ctx )
+{
+    mbedtls_rsa_init_legacy( ctx, MBEDTLS_RSA_PKCS_V15, MBEDTLS_MD_NONE );
+}
+
+int mbedtls_rsa_set_padding( mbedtls_rsa_context *ctx, int padding, mbedtls_md_type_t hash_id )
+{
+    if( ctx == NULL )
+        return( MBEDTLS_ERR_RSA_BAD_INPUT_DATA );
+
+    if( padding != MBEDTLS_RSA_PKCS_V15 && padding != MBEDTLS_RSA_PKCS_V21 )
+        return( MBEDTLS_ERR_RSA_INVALID_PADDING );
+
+    mbedtls_rsa_set_padding_legacy( ctx, padding, (int) hash_id );
+    return( 0 );
+}
+
+int mbedtls_rsa_get_padding_mode( const mbedtls_rsa_context *ctx )
+{
+    return( ctx != NULL ? ctx->padding : MBEDTLS_RSA_PKCS_V15 );
+}
+
+int mbedtls_rsa_get_md_alg( const mbedtls_rsa_context *ctx )
+{
+    return( ctx != NULL ? ctx->hash_id : MBEDTLS_MD_NONE );
+}
+
+size_t mbedtls_rsa_get_bitlen( const mbedtls_rsa_context *ctx )
+{
+    if( ctx == NULL )
+        return( 0 );
+    return( mbedtls_mpi_bitlen( &ctx->N ) );
+}
+
+int mbedtls_rsa_rsaes_pkcs1_v15_encrypt( mbedtls_rsa_context *ctx,
+                                         int (*f_rng)(void *, unsigned char *, size_t),
+                                         void *p_rng,
+                                         size_t ilen,
+                                         const unsigned char *input,
+                                         unsigned char *output )
+{
+    return mbedtls_rsa_rsaes_pkcs1_v15_encrypt_legacy( ctx, f_rng, p_rng,
+                                                        MBEDTLS_RSA_PUBLIC, ilen,
+                                                        input, output );
+}
+
+int mbedtls_rsa_rsaes_oaep_encrypt( mbedtls_rsa_context *ctx,
+                                    int (*f_rng)(void *, unsigned char *, size_t),
+                                    void *p_rng,
+                                    const unsigned char *label, size_t label_len,
+                                    size_t ilen,
+                                    const unsigned char *input,
+                                    unsigned char *output )
+{
+    return mbedtls_rsa_rsaes_oaep_encrypt_legacy( ctx, f_rng, p_rng,
+                                                   MBEDTLS_RSA_PUBLIC,
+                                                   label, label_len,
+                                                   ilen, input, output );
+}
+
+int mbedtls_rsa_pkcs1_encrypt( mbedtls_rsa_context *ctx,
+                               int (*f_rng)(void *, unsigned char *, size_t),
+                               void *p_rng,
+                               size_t ilen,
+                               const unsigned char *input,
+                               unsigned char *output )
+{
+    return mbedtls_rsa_pkcs1_encrypt_legacy( ctx, f_rng, p_rng,
+                                             MBEDTLS_RSA_PUBLIC, ilen,
+                                             input, output );
+}
+
+int mbedtls_rsa_rsaes_pkcs1_v15_decrypt( mbedtls_rsa_context *ctx,
+                                         int (*f_rng)(void *, unsigned char *, size_t),
+                                         void *p_rng,
+                                         size_t *olen,
+                                         const unsigned char *input,
+                                         unsigned char *output,
+                                         size_t output_max_len )
+{
+    return mbedtls_rsa_rsaes_pkcs1_v15_decrypt_legacy( ctx, f_rng, p_rng,
+                                                        MBEDTLS_RSA_PRIVATE, olen,
+                                                        input, output, output_max_len );
+}
+
+int mbedtls_rsa_rsaes_oaep_decrypt( mbedtls_rsa_context *ctx,
+                                    int (*f_rng)(void *, unsigned char *, size_t),
+                                    void *p_rng,
+                                    const unsigned char *label, size_t label_len,
+                                    size_t *olen,
+                                    const unsigned char *input,
+                                    unsigned char *output,
+                                    size_t output_max_len )
+{
+    return mbedtls_rsa_rsaes_oaep_decrypt_legacy( ctx, f_rng, p_rng,
+                                                   MBEDTLS_RSA_PRIVATE,
+                                                   label, label_len,
+                                                   olen, input, output, output_max_len );
+}
+
+int mbedtls_rsa_pkcs1_decrypt( mbedtls_rsa_context *ctx,
+                               int (*f_rng)(void *, unsigned char *, size_t),
+                               void *p_rng,
+                               size_t *olen,
+                               const unsigned char *input,
+                               unsigned char *output,
+                               size_t output_max_len )
+{
+    return mbedtls_rsa_pkcs1_decrypt_legacy( ctx, f_rng, p_rng,
+                                             MBEDTLS_RSA_PRIVATE, olen,
+                                             input, output, output_max_len );
+}
+
+int mbedtls_rsa_rsassa_pkcs1_v15_sign( mbedtls_rsa_context *ctx,
+                                       int (*f_rng)(void *, unsigned char *, size_t),
+                                       void *p_rng,
+                                       mbedtls_md_type_t md_alg,
+                                       unsigned int hashlen,
+                                       const unsigned char *hash,
+                                       unsigned char *sig )
+{
+    return mbedtls_rsa_rsassa_pkcs1_v15_sign_legacy( ctx, f_rng, p_rng,
+                                                      MBEDTLS_RSA_PRIVATE,
+                                                      md_alg, hashlen, hash, sig );
+}
+
+int mbedtls_rsa_rsassa_pss_sign_ext( mbedtls_rsa_context *ctx,
+                                     int (*f_rng)(void *, unsigned char *, size_t),
+                                     void *p_rng,
+                                     mbedtls_md_type_t md_alg,
+                                     unsigned int hashlen,
+                                     const unsigned char *hash,
+                                     int saltlen,
+                                     unsigned char *sig )
+{
+    size_t key_len;
+    const mbedtls_md_info_t *md_info;
+    size_t hlen;
+
+    if( saltlen != MBEDTLS_RSA_SALT_LEN_ANY )
+    {
+        md_info = mbedtls_md_info_from_type( (mbedtls_md_type_t) ctx->hash_id );
+        if( md_info == NULL )
+            return( MBEDTLS_ERR_RSA_BAD_INPUT_DATA );
+        hlen = mbedtls_md_get_size( md_info );
+        key_len = mbedtls_rsa_get_len( ctx );
+        if( saltlen < 0 || (size_t) saltlen > hlen || (size_t) saltlen + hlen + 2 > key_len )
+            return( MBEDTLS_ERR_RSA_BAD_INPUT_DATA );
+        if( (size_t) saltlen != hlen )
+            return( MBEDTLS_ERR_RSA_UNSUPPORTED_OPERATION );
+    }
+
+    return mbedtls_rsa_rsassa_pss_sign_legacy( ctx, f_rng, p_rng,
+                                               MBEDTLS_RSA_PRIVATE,
+                                               md_alg, hashlen, hash, sig );
+}
+
+int mbedtls_rsa_rsassa_pss_sign( mbedtls_rsa_context *ctx,
+                                 int (*f_rng)(void *, unsigned char *, size_t),
+                                 void *p_rng,
+                                 mbedtls_md_type_t md_alg,
+                                 unsigned int hashlen,
+                                 const unsigned char *hash,
+                                 unsigned char *sig )
+{
+    return mbedtls_rsa_rsassa_pss_sign_ext( ctx, f_rng, p_rng,
+                                            md_alg, hashlen, hash,
+                                            MBEDTLS_RSA_SALT_LEN_ANY,
+                                            sig );
+}
+
+int mbedtls_rsa_rsassa_pss_sign_no_mode_check( mbedtls_rsa_context *ctx,
+                                                int (*f_rng)(void *, unsigned char *, size_t),
+                                                void *p_rng,
+                                                mbedtls_md_type_t md_alg,
+                                                unsigned int hashlen,
+                                                const unsigned char *hash,
+                                                unsigned char *sig )
+{
+    int ret;
+    int saved_padding = ctx->padding;
+    int saved_hash_id = ctx->hash_id;
+
+    ctx->padding = MBEDTLS_RSA_PKCS_V21;
+    if( ctx->hash_id == MBEDTLS_MD_NONE )
+    {
+        ctx->hash_id = md_alg;
+    }
+
+    ret = mbedtls_rsa_rsassa_pss_sign_legacy( ctx, f_rng, p_rng,
+                                              MBEDTLS_RSA_PRIVATE,
+                                              md_alg, hashlen, hash, sig );
+
+    ctx->padding = saved_padding;
+    ctx->hash_id = saved_hash_id;
+
+    return ret;
+}
+
+int mbedtls_rsa_pkcs1_sign( mbedtls_rsa_context *ctx,
+                            int (*f_rng)(void *, unsigned char *, size_t),
+                            void *p_rng,
+                            mbedtls_md_type_t md_alg,
+                            unsigned int hashlen,
+                            const unsigned char *hash,
+                            unsigned char *sig )
+{
+    return mbedtls_rsa_pkcs1_sign_legacy( ctx, f_rng, p_rng,
+                                          MBEDTLS_RSA_PRIVATE,
+                                          md_alg, hashlen, hash, sig );
+}
+
+int mbedtls_rsa_rsassa_pss_verify_ext( mbedtls_rsa_context *ctx,
+                                       mbedtls_md_type_t md_alg,
+                                       unsigned int hashlen,
+                                       const unsigned char *hash,
+                                       mbedtls_md_type_t mgf1_hash_id,
+                                       int expected_salt_len,
+                                       const unsigned char *sig )
+{
+    return mbedtls_rsa_rsassa_pss_verify_ext_legacy( ctx, NULL, NULL,
+                                                      MBEDTLS_RSA_PUBLIC,
+                                                      md_alg, hashlen, hash,
+                                                      mgf1_hash_id,
+                                                      expected_salt_len,
+                                                      sig );
+}
+
+int mbedtls_rsa_rsassa_pss_verify( mbedtls_rsa_context *ctx,
+                                   mbedtls_md_type_t md_alg,
+                                   unsigned int hashlen,
+                                   const unsigned char *hash,
+                                   const unsigned char *sig )
+{
+    return mbedtls_rsa_rsassa_pss_verify_legacy( ctx, NULL, NULL,
+                                                  MBEDTLS_RSA_PUBLIC,
+                                                  md_alg, hashlen, hash, sig );
+}
+
+int mbedtls_rsa_rsassa_pkcs1_v15_verify( mbedtls_rsa_context *ctx,
+                                         mbedtls_md_type_t md_alg,
+                                         unsigned int hashlen,
+                                         const unsigned char *hash,
+                                         const unsigned char *sig )
+{
+    return mbedtls_rsa_rsassa_pkcs1_v15_verify_legacy( ctx, NULL, NULL,
+                                                        MBEDTLS_RSA_PUBLIC,
+                                                        md_alg, hashlen, hash, sig );
+}
+
+int mbedtls_rsa_pkcs1_verify( mbedtls_rsa_context *ctx,
+                              mbedtls_md_type_t md_alg,
+                              unsigned int hashlen,
+                              const unsigned char *hash,
+                              const unsigned char *sig )
+{
+    return mbedtls_rsa_pkcs1_verify_legacy( ctx, NULL, NULL,
+                                            MBEDTLS_RSA_PUBLIC,
+                                            md_alg, hashlen, hash, sig );
 }
 
 /*

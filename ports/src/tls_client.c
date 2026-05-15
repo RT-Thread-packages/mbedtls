@@ -27,11 +27,7 @@
 #include "tls_certificate.h"
 #endif
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "common.h"
 
 #if defined(MBEDTLS_DEBUG_C)
 #define DEBUG_LEVEL (2)
@@ -55,7 +51,7 @@ static void _ssl_debug(void *ctx, int level, const char *file, int line, const c
 {
     ((void) level);
 
-    LOG_D("%s:%04d: %s", file, line, str);
+    LOG_D("%s:%04d: %.*s", file, line, strlen(str) - 1, str);
 }
 
 static int mbedtls_ssl_certificate_verify(MbedTLSSession *session)
@@ -159,6 +155,12 @@ int mbedtls_client_context(MbedTLSSession *session)
         LOG_W("%d certificate(s) in %s failed to parse", ret, PKG_MBEDTLS_CERTS_DIR);
         ret = 0;
     }
+
+    if (session->cacert.raw.p == RT_NULL)
+    {
+        LOG_E("no CA certificate loaded from %s", PKG_MBEDTLS_CERTS_DIR);
+        return -RT_ERROR;
+    }
 #else
     ret = mbedtls_x509_crt_parse(&session->cacert, (const unsigned char *)mbedtls_root_certificate,
                                  mbedtls_root_certificate_len);
@@ -227,13 +229,13 @@ int mbedtls_client_connect(MbedTLSSession *session)
 
     while ((ret = mbedtls_ssl_handshake(&session->ssl)) != 0)
     {
-        if (RT_EOK != mbedtls_ssl_certificate_verify(session))
-        {
-            return -RT_ERROR;
-        }
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
         {
             LOG_E("mbedtls_ssl_handshake error, return -0x%x", -ret);
+            if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED)
+            {
+                (void)mbedtls_ssl_certificate_verify(session);
+            }
             return ret;
         }
     }

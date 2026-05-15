@@ -31,12 +31,9 @@
  */
 #ifndef MBEDTLS_AES_ALT_H
 #define MBEDTLS_AES_ALT_H
+#include "mbedtls/private_access.h"
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "mbedtls/build_info.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -310,6 +307,29 @@ int mbedtls_aes_crypt_ctr( mbedtls_aes_context *ctx,
                        unsigned char *output );
 #endif /* MBEDTLS_CIPHER_MODE_CTR */
 
+#if defined(MBEDTLS_CIPHER_MODE_XTS)
+typedef struct mbedtls_aes_xts_context
+{
+    mbedtls_aes_context crypt;
+    mbedtls_aes_context tweak;
+} mbedtls_aes_xts_context;
+
+void mbedtls_aes_xts_init( mbedtls_aes_xts_context *ctx );
+void mbedtls_aes_xts_free( mbedtls_aes_xts_context *ctx );
+int mbedtls_aes_xts_setkey_enc( mbedtls_aes_xts_context *ctx,
+                                const unsigned char *key,
+                                unsigned int keybits );
+int mbedtls_aes_xts_setkey_dec( mbedtls_aes_xts_context *ctx,
+                                const unsigned char *key,
+                                unsigned int keybits );
+int mbedtls_aes_crypt_xts( mbedtls_aes_xts_context *ctx,
+                           int mode,
+                           size_t length,
+                           const unsigned char data_unit[16],
+                           const unsigned char *input,
+                           unsigned char *output );
+#endif /* MBEDTLS_CIPHER_MODE_XTS */
+
 /**
  * \brief           Internal AES block encryption function. This is only
  *                  exposed to allow overriding it using
@@ -341,9 +361,9 @@ int mbedtls_internal_aes_decrypt( mbedtls_aes_context *ctx,
                                   unsigned char output[16] );
 
 #if !defined(MBEDTLS_DEPRECATED_REMOVED)
-#if defined(MBEDTLS_DEPRECATED_WARNING)
+#if !defined(MBEDTLS_DEPRECATED) && defined(MBEDTLS_DEPRECATED_WARNING)
 #define MBEDTLS_DEPRECATED      __attribute__((deprecated))
-#else
+#elif !defined(MBEDTLS_DEPRECATED)
 #define MBEDTLS_DEPRECATED
 #endif
 /**
@@ -373,8 +393,6 @@ MBEDTLS_DEPRECATED void mbedtls_aes_encrypt( mbedtls_aes_context *ctx,
 MBEDTLS_DEPRECATED void mbedtls_aes_decrypt( mbedtls_aes_context *ctx,
                                              const unsigned char input[16],
                                              unsigned char output[16] );
-
-#undef MBEDTLS_DEPRECATED
 #endif /* !MBEDTLS_DEPRECATED_REMOVED */
 
 #ifdef __cplusplus

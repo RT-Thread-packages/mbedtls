@@ -27,12 +27,9 @@
  */
 #ifndef MBEDTLS_SHA1_ALT_H
 #define MBEDTLS_SHA1_ALT_H
+#include "mbedtls/private_access.h"
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "mbedtls/build_info.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -162,9 +159,9 @@ int mbedtls_internal_sha1_process( mbedtls_sha1_context *ctx,
                                    const unsigned char data[64] );
 
 #if !defined(MBEDTLS_DEPRECATED_REMOVED)
-#if defined(MBEDTLS_DEPRECATED_WARNING)
+#if !defined(MBEDTLS_DEPRECATED) && defined(MBEDTLS_DEPRECATED_WARNING)
 #define MBEDTLS_DEPRECATED      __attribute__((deprecated))
-#else
+#elif !defined(MBEDTLS_DEPRECATED)
 #define MBEDTLS_DEPRECATED
 #endif
 /**
@@ -179,7 +176,7 @@ int mbedtls_internal_sha1_process( mbedtls_sha1_context *ctx,
  *                 stronger message digests instead.
  *
  */
-MBEDTLS_DEPRECATED void mbedtls_sha1_starts( mbedtls_sha1_context *ctx );
+MBEDTLS_DEPRECATED int mbedtls_sha1_starts( mbedtls_sha1_context *ctx );
 
 /**
  * \brief          SHA-1 process buffer
@@ -195,9 +192,9 @@ MBEDTLS_DEPRECATED void mbedtls_sha1_starts( mbedtls_sha1_context *ctx );
  *                 stronger message digests instead.
  *
  */
-MBEDTLS_DEPRECATED void mbedtls_sha1_update( mbedtls_sha1_context *ctx,
-                                             const unsigned char *input,
-                                             size_t ilen );
+MBEDTLS_DEPRECATED int mbedtls_sha1_update( mbedtls_sha1_context *ctx,
+                                            const unsigned char *input,
+                                            size_t ilen );
 
 /**
  * \brief          SHA-1 final digest
@@ -212,8 +209,8 @@ MBEDTLS_DEPRECATED void mbedtls_sha1_update( mbedtls_sha1_context *ctx,
  *                 stronger message digests instead.
  *
  */
-MBEDTLS_DEPRECATED void mbedtls_sha1_finish( mbedtls_sha1_context *ctx,
-                                             unsigned char output[20] );
+MBEDTLS_DEPRECATED int mbedtls_sha1_finish( mbedtls_sha1_context *ctx,
+                                            unsigned char output[20] );
 
 /**
  * \brief          SHA-1 process data block (internal use only)
@@ -228,10 +225,8 @@ MBEDTLS_DEPRECATED void mbedtls_sha1_finish( mbedtls_sha1_context *ctx,
  *                 stronger message digests instead.
  *
  */
-MBEDTLS_DEPRECATED void mbedtls_sha1_process( mbedtls_sha1_context *ctx,
-                                              const unsigned char data[64] );
-
-#undef MBEDTLS_DEPRECATED
+MBEDTLS_DEPRECATED int mbedtls_sha1_process( mbedtls_sha1_context *ctx,
+                                             const unsigned char data[64] );
 #endif /* !MBEDTLS_DEPRECATED_REMOVED */
 
 #ifdef __cplusplus

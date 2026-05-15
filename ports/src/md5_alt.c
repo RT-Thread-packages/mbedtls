@@ -24,11 +24,7 @@
  *  http://www.ietf.org/rfc/rfc1321.txt
  */
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "common.h"
 
 #if defined(MBEDTLS_MD5_C)
 
@@ -44,11 +40,43 @@
 
 #if defined(MBEDTLS_MD5_ALT)
 
+static int mbedtls_md5_ensure_ctx(mbedtls_md5_context *ctx)
+{
+    struct rt_hwcrypto_device *dev;
+
+    if (ctx == RT_NULL)
+    {
+        return MBEDTLS_ERR_MD5_HW_ACCEL_FAILED;
+    }
+
+    if (*ctx != RT_NULL)
+    {
+        return 0;
+    }
+
+    dev = rt_hwcrypto_dev_default();
+    if (dev == RT_NULL)
+    {
+        LOG_E("md5 dev default is null");
+        return MBEDTLS_ERR_MD5_HW_ACCEL_FAILED;
+    }
+
+    *ctx = rt_hwcrypto_hash_create(dev, HWCRYPTO_TYPE_MD5);
+    if (*ctx == RT_NULL)
+    {
+        LOG_E("md5 create ctx failed");
+        return MBEDTLS_ERR_MD5_HW_ACCEL_FAILED;
+    }
+
+    return 0;
+}
+
 void mbedtls_md5_init(mbedtls_md5_context *ctx)
 {
     if (ctx)
     {
-        *ctx = rt_hwcrypto_hash_create(rt_hwcrypto_dev_default(), HWCRYPTO_TYPE_MD5);
+        *ctx = RT_NULL;
+        (void)mbedtls_md5_ensure_ctx(ctx);
         LOG_D("md5 init ctx[%08x]", *ctx);
     }
     else
@@ -59,12 +87,13 @@ void mbedtls_md5_init(mbedtls_md5_context *ctx)
 
 void mbedtls_md5_free(mbedtls_md5_context *ctx)
 {
-    if (ctx)
+    if (ctx && (*ctx != RT_NULL))
     {
         LOG_D("md5 free ctx[%08x]", *ctx);
         rt_hwcrypto_hash_destroy(*ctx);
+        *ctx = RT_NULL;
     }
-    else
+    else if (!ctx)
     {
         LOG_E("md5 free. but ctx is null");
     }
@@ -73,10 +102,17 @@ void mbedtls_md5_free(mbedtls_md5_context *ctx)
 void mbedtls_md5_clone(mbedtls_md5_context *dst,
                        const mbedtls_md5_context *src)
 {
-    if (dst && src)
+    if (dst && src && (*src != RT_NULL))
     {
+        if (mbedtls_md5_ensure_ctx(dst) != 0)
+        {
+            return;
+        }
         LOG_D("md5 clone des[%08x] src[%08x]", *dst, *src);
-        rt_hwcrypto_hash_cpy(*dst, *src);
+        if (rt_hwcrypto_hash_cpy(*dst, *src) != RT_EOK)
+        {
+            LOG_E("md5 clone failed");
+        }
     }
     else
     {
@@ -89,7 +125,7 @@ void mbedtls_md5_clone(mbedtls_md5_context *dst,
  */
 int mbedtls_md5_starts_ret(mbedtls_md5_context *ctx)
 {
-    if (ctx)
+    if (mbedtls_md5_ensure_ctx(ctx) == 0)
     {
         LOG_D("md5 starts ctx[%08x]", *ctx);
         rt_hwcrypto_hash_reset(*ctx);
@@ -97,15 +133,16 @@ int mbedtls_md5_starts_ret(mbedtls_md5_context *ctx)
     else
     {
         LOG_E("md5 starts. but ctx is null");
+        return MBEDTLS_ERR_MD5_HW_ACCEL_FAILED;
     }
 
     return 0;
 }
 
 #if !defined(MBEDTLS_DEPRECATED_REMOVED)
-void mbedtls_md5_starts(mbedtls_md5_context *ctx)
+int mbedtls_md5_starts(mbedtls_md5_context *ctx)
 {
-    mbedtls_md5_starts_ret(ctx);
+    return mbedtls_md5_starts_ret(ctx);
 }
 #endif
 
@@ -117,10 +154,10 @@ int mbedtls_internal_md5_process(mbedtls_md5_context *ctx,
 }
 
 #if !defined(MBEDTLS_DEPRECATED_REMOVED)
-void mbedtls_md5_process(mbedtls_md5_context *ctx,
-                         const unsigned char data[64])
+int mbedtls_md5_process(mbedtls_md5_context *ctx,
+                        const unsigned char data[64])
 {
-    mbedtls_internal_md5_process(ctx, data);
+    return mbedtls_internal_md5_process(ctx, data);
 }
 #endif
 #endif /* !MBEDTLS_MD5_PROCESS_ALT */
@@ -130,25 +167,30 @@ void mbedtls_md5_process(mbedtls_md5_context *ctx,
  */
 int mbedtls_md5_update_ret(mbedtls_md5_context *ctx, const unsigned char *input, size_t ilen)
 {
-    if (ctx)
+    if ((mbedtls_md5_ensure_ctx(ctx) == 0) && (input != RT_NULL || ilen == 0))
     {
         LOG_D("md5 update ctx[%08x] len:%d in:%08x", *ctx, ilen, input);
-        rt_hwcrypto_hash_update(*ctx, input, ilen);
+        if (rt_hwcrypto_hash_update(*ctx, input, ilen) != RT_EOK)
+        {
+            LOG_E("md5 update failed");
+            return MBEDTLS_ERR_MD5_HW_ACCEL_FAILED;
+        }
     }
     else
     {
         LOG_E("md5 update. but ctx is null");
+        return MBEDTLS_ERR_MD5_HW_ACCEL_FAILED;
     }
 
     return 0;
 }
 
 #if !defined(MBEDTLS_DEPRECATED_REMOVED)
-void mbedtls_md5_update(mbedtls_md5_context *ctx,
-                        const unsigned char *input,
-                        size_t ilen)
+int mbedtls_md5_update(mbedtls_md5_context *ctx,
+                       const unsigned char *input,
+                       size_t ilen)
 {
-    mbedtls_md5_update_ret(ctx, input, ilen);
+    return mbedtls_md5_update_ret(ctx, input, ilen);
 }
 #endif
 
@@ -157,24 +199,29 @@ void mbedtls_md5_update(mbedtls_md5_context *ctx,
  */
 int mbedtls_md5_finish_ret(mbedtls_md5_context *ctx, unsigned char output[16])
 {
-    if (ctx)
+    if ((mbedtls_md5_ensure_ctx(ctx) == 0) && (output != RT_NULL))
     {
         LOG_D("md5 finish ctx[%08x] out:%08x", *ctx, output);
-        rt_hwcrypto_hash_finish(*ctx, output, 16);
+        if (rt_hwcrypto_hash_finish(*ctx, output, 16) != RT_EOK)
+        {
+            LOG_E("md5 finish failed");
+            return MBEDTLS_ERR_MD5_HW_ACCEL_FAILED;
+        }
     }
     else
     {
         LOG_E("md5 finish. but ctx is null");
+        return MBEDTLS_ERR_MD5_HW_ACCEL_FAILED;
     }
 
     return 0;
 }
 
 #if !defined(MBEDTLS_DEPRECATED_REMOVED)
-void mbedtls_md5_finish(mbedtls_md5_context *ctx,
-                        unsigned char output[16])
+int mbedtls_md5_finish(mbedtls_md5_context *ctx,
+                       unsigned char output[16])
 {
-    mbedtls_md5_finish_ret(ctx, output);
+    return mbedtls_md5_finish_ret(ctx, output);
 }
 #endif
 

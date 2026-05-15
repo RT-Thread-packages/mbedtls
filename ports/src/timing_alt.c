@@ -19,11 +19,8 @@
  *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "rtthread.h"
+#include "common.h"
 
 #if defined(MBEDTLS_SELF_TEST) && defined(MBEDTLS_PLATFORM_C)
 #include "mbedtls/platform.h"
@@ -151,3 +148,32 @@ int mbedtls_timing_get_delay( void *data )
 }
 
 #endif /* MBEDTLS_TIMING_C */
+
+#if defined(MBEDTLS_PLATFORM_MS_TIME_ALT)
+#include <rtthread.h>
+#include <sys/time.h>
+#include <time.h>
+#include "mbedtls/platform_time.h"
+
+time_t rt_mbedtls_time(time_t *t)
+{
+    struct timeval tv;
+    time_t now = (time_t) -1;
+
+    if (gettimeofday(&tv, RT_NULL) == 0)
+    {
+        now = (time_t) tv.tv_sec;
+    }
+
+    if (t != RT_NULL)
+    {
+        *t = now;
+    }
+    return now;
+}
+
+mbedtls_ms_time_t mbedtls_ms_time(void)
+{
+    return (mbedtls_ms_time_t) rt_tick_get() * 1000 / RT_TICK_PER_SECOND;
+}
+#endif
