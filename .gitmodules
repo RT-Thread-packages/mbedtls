@@ -1,0 +1,4 @@
+[submodule "mbedtls"]
+	path = mbedtls
+	url = https://gitee.com/RT-Thread-Mirror/mbedtls-offical
+	branch = mbedtls-3.6

@@ -25,11 +25,7 @@
  *  http://csrc.nist.gov/publications/fips/fips46-3/fips46-3.pdf
  */
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "common.h"
 
 #if defined(MBEDTLS_DES_C)
 
@@ -44,6 +40,33 @@
 #include <rtdbg.h>
 
 #if defined(MBEDTLS_DES_ALT)
+
+static rt_uint8_t mbedtls_des_odd_parity_byte(rt_uint8_t x)
+{
+    rt_uint8_t v = x & 0xFE;
+    rt_uint8_t p = 0;
+    int i;
+
+    for (i = 1; i < 8; i++)
+    {
+        p ^= (v >> i) & 0x01;
+    }
+
+    return (rt_uint8_t)(v | (p ^ 0x01));
+}
+
+static int mbedtls_des_byte_has_odd_parity(rt_uint8_t x)
+{
+    rt_uint8_t p = 0;
+    int i;
+
+    for (i = 0; i < 8; i++)
+    {
+        p ^= (x >> i) & 0x01;
+    }
+
+    return (p == 1);
+}
 
 void mbedtls_des_init(mbedtls_des_context *ctx)
 {
@@ -99,11 +122,16 @@ void mbedtls_des3_free(mbedtls_des3_context *ctx)
 
 void mbedtls_des_key_set_parity(unsigned char key[MBEDTLS_DES_KEY_SIZE])
 {
-    LOG_E("fun[%s] is run. but this fun no entity", __FUNCTION__);
+    int i;
 
-    while (1)
+    if (key == RT_NULL)
     {
+        return;
+    }
 
+    for (i = 0; i < MBEDTLS_DES_KEY_SIZE; i++)
+    {
+        key[i] = mbedtls_des_odd_parity_byte(key[i]);
     }
 }
 
@@ -112,36 +140,72 @@ void mbedtls_des_key_set_parity(unsigned char key[MBEDTLS_DES_KEY_SIZE])
  */
 int mbedtls_des_key_check_key_parity(const unsigned char key[MBEDTLS_DES_KEY_SIZE])
 {
-    int flag = 1;
-    LOG_E("fun[%s] is run. but this fun no entity", __FUNCTION__);
+    int i;
 
-    if (flag)
+    if (key == RT_NULL)
     {
-        while (1);
+        return 1;
     }
-    return flag;
+
+    for (i = 0; i < MBEDTLS_DES_KEY_SIZE; i++)
+    {
+        if (!mbedtls_des_byte_has_odd_parity(key[i]))
+        {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 int mbedtls_des_key_check_weak(const unsigned char key[MBEDTLS_DES_KEY_SIZE])
 {
-    int flag = 1;
-    LOG_E("fun[%s] is run. but this fun no entity", __FUNCTION__);
-
-    if (flag)
+    static const unsigned char weak_keys[16][MBEDTLS_DES_KEY_SIZE] =
     {
-        while (1);
+        {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01},
+        {0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE},
+        {0x1F, 0x1F, 0x1F, 0x1F, 0x0E, 0x0E, 0x0E, 0x0E},
+        {0xE0, 0xE0, 0xE0, 0xE0, 0xF1, 0xF1, 0xF1, 0xF1},
+        {0x01, 0xFE, 0x01, 0xFE, 0x01, 0xFE, 0x01, 0xFE},
+        {0xFE, 0x01, 0xFE, 0x01, 0xFE, 0x01, 0xFE, 0x01},
+        {0x1F, 0xE0, 0x1F, 0xE0, 0x0E, 0xF1, 0x0E, 0xF1},
+        {0xE0, 0x1F, 0xE0, 0x1F, 0xF1, 0x0E, 0xF1, 0x0E},
+        {0x01, 0xE0, 0x01, 0xE0, 0x01, 0xF1, 0x01, 0xF1},
+        {0xE0, 0x01, 0xE0, 0x01, 0xF1, 0x01, 0xF1, 0x01},
+        {0x1F, 0xFE, 0x1F, 0xFE, 0x0E, 0xFE, 0x0E, 0xFE},
+        {0xFE, 0x1F, 0xFE, 0x1F, 0xFE, 0x0E, 0xFE, 0x0E},
+        {0x01, 0x1F, 0x01, 0x1F, 0x01, 0x0E, 0x01, 0x0E},
+        {0x1F, 0x01, 0x1F, 0x01, 0x0E, 0x01, 0x0E, 0x01},
+        {0xE0, 0xFE, 0xE0, 0xFE, 0xF1, 0xFE, 0xF1, 0xFE},
+        {0xFE, 0xE0, 0xFE, 0xE0, 0xFE, 0xF1, 0xFE, 0xF1}
+    };
+    int i;
+
+    if (key == RT_NULL)
+    {
+        return 1;
     }
-    return flag;
+
+    for (i = 0; i < 16; i++)
+    {
+        if (rt_memcmp(key, weak_keys[i], MBEDTLS_DES_KEY_SIZE) == 0)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 #if !defined(MBEDTLS_DES_SETKEY_ALT)
 void mbedtls_des_setkey(uint32_t SK[32], const unsigned char key[MBEDTLS_DES_KEY_SIZE])
 {
-    LOG_E("fun[%s] is run. but this fun no entity", __FUNCTION__);
-    while (1)
+    if (SK != RT_NULL)
     {
-
+        rt_memset(SK, 0, sizeof(uint32_t) * 32);
     }
+
+    RT_UNUSED(key);
 }
 #endif /* !MBEDTLS_DES_SETKEY_ALT */
 
@@ -272,7 +336,7 @@ int mbedtls_des3_set3key_dec(mbedtls_des3_context *ctx,
     if (ctx)
     {
         LOG_D("des3 dec setkey ctx[%08x] key:%08x len:%d",
-              ctx->des3_context, key, MBEDTLS_DES_KEY_SIZE * 2);
+              ctx->des3_context, key, MBEDTLS_DES_KEY_SIZE * 3);
         ctx->mode = HWCRYPTO_MODE_DECRYPT;
         if (rt_hwcrypto_symmetric_setkey(ctx->des3_context, key, (MBEDTLS_DES_KEY_SIZE * 3) << 3) != RT_EOK)
         {
@@ -301,7 +365,7 @@ int mbedtls_des_crypt_ecb(mbedtls_des_context *ctx,
     {
         des_ctx = (struct hwcrypto_symmetric *)(ctx->des_context);
         LOG_D("des crypt ecb ctx[%08x] mode:%d in:%08x out:%08x",
-              ctx->des_context, mode, input, output);
+              ctx->des_context, ctx->mode, input, output);
         if (des_ctx->flags & SYMMTRIC_MODIFY_KEY)
         {
             rt_hwcrypto_symmetric_set_type(ctx->des_context, HWCRYPTO_TYPE_DES_ECB);
@@ -378,7 +442,7 @@ int mbedtls_des3_crypt_ecb(mbedtls_des3_context *ctx,
     {
         des3_ctx = (struct hwcrypto_symmetric *)(ctx->des3_context);
         LOG_D("3des crypt ecb ctx[%08x] mode:%d in:%08x out:%08x",
-              ctx->des3_context, mode, input, output);
+              ctx->des3_context, ctx->mode, input, output);
         if (des3_ctx->flags & SYMMTRIC_MODIFY_KEY)
         {
             rt_hwcrypto_symmetric_set_type(ctx->des3_context, HWCRYPTO_TYPE_3DES_ECB);

@@ -24,11 +24,7 @@
  *  http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf
  */
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "common.h"
 
 #if defined(MBEDTLS_SHA512_C)
 
@@ -44,11 +40,43 @@
 
 #if defined(MBEDTLS_SHA512_ALT)
 
+static int mbedtls_sha512_ensure_ctx(mbedtls_sha512_context *ctx)
+{
+    struct rt_hwcrypto_device *dev;
+
+    if (ctx == RT_NULL)
+    {
+        return MBEDTLS_ERR_SHA512_HW_ACCEL_FAILED;
+    }
+
+    if (*ctx != RT_NULL)
+    {
+        return 0;
+    }
+
+    dev = rt_hwcrypto_dev_default();
+    if (dev == RT_NULL)
+    {
+        LOG_E("sha2 dev default is null");
+        return MBEDTLS_ERR_SHA512_HW_ACCEL_FAILED;
+    }
+
+    *ctx = rt_hwcrypto_hash_create(dev, HWCRYPTO_TYPE_SHA2);
+    if (*ctx == RT_NULL)
+    {
+        LOG_E("sha2 create ctx failed");
+        return MBEDTLS_ERR_SHA512_HW_ACCEL_FAILED;
+    }
+
+    return 0;
+}
+
 void mbedtls_sha512_init(mbedtls_sha512_context *ctx)
 {
     if (ctx)
     {
-        *ctx = rt_hwcrypto_hash_create(rt_hwcrypto_dev_default(), HWCRYPTO_TYPE_SHA2);
+        *ctx = RT_NULL;
+        (void)mbedtls_sha512_ensure_ctx(ctx);
         LOG_D("sha2 init ctx[%08x]", *ctx);
     }
     else
@@ -59,12 +87,13 @@ void mbedtls_sha512_init(mbedtls_sha512_context *ctx)
 
 void mbedtls_sha512_free(mbedtls_sha512_context *ctx)
 {
-    if (ctx)
+    if (ctx && (*ctx != RT_NULL))
     {
         LOG_D("sha2 free ctx[%08x]", *ctx);
         rt_hwcrypto_hash_destroy(*ctx);
+        *ctx = RT_NULL;
     }
-    else
+    else if (!ctx)
     {
         LOG_E("sha2 free. but ctx is null");
     }
@@ -73,10 +102,17 @@ void mbedtls_sha512_free(mbedtls_sha512_context *ctx)
 void mbedtls_sha512_clone(mbedtls_sha512_context *dst,
                           const mbedtls_sha512_context *src)
 {
-    if (dst && src)
+    if (dst && src && (*src != RT_NULL))
     {
+        if (mbedtls_sha512_ensure_ctx(dst) != 0)
+        {
+            return;
+        }
         LOG_D("sha2 clone des[%08x] src[%08x]", *dst, *src);
-        rt_hwcrypto_hash_cpy(*dst, *src);
+        if (rt_hwcrypto_hash_cpy(*dst, *src) != RT_EOK)
+        {
+            LOG_E("sha2 clone failed");
+        }
     }
     else
     {
@@ -89,32 +125,41 @@ void mbedtls_sha512_clone(mbedtls_sha512_context *dst,
  */
 int mbedtls_sha512_starts_ret(mbedtls_sha512_context *ctx, int is384)
 {
-    if (ctx)
+    if (mbedtls_sha512_ensure_ctx(ctx) == 0)
     {
         LOG_D("sha2-%s starts ctx[%08x]", is384 ? "384" : "512", *ctx);
         if (is384)
         {
-            rt_hwcrypto_hash_set_type(*ctx, HWCRYPTO_TYPE_SHA384);
+            if (rt_hwcrypto_hash_set_type(*ctx, HWCRYPTO_TYPE_SHA384) != RT_EOK)
+            {
+                LOG_E("sha384 set type failed");
+                return MBEDTLS_ERR_SHA512_HW_ACCEL_FAILED;
+            }
         }
         else
         {
-            rt_hwcrypto_hash_set_type(*ctx, HWCRYPTO_TYPE_SHA512);
+            if (rt_hwcrypto_hash_set_type(*ctx, HWCRYPTO_TYPE_SHA512) != RT_EOK)
+            {
+                LOG_E("sha512 set type failed");
+                return MBEDTLS_ERR_SHA512_HW_ACCEL_FAILED;
+            }
         }
         rt_hwcrypto_hash_reset(*ctx);
     }
     else
     {
         LOG_E("sha2 starts. but ctx is null");
+        return MBEDTLS_ERR_SHA512_HW_ACCEL_FAILED;
     }
 
     return 0;
 }
 
 #if !defined(MBEDTLS_DEPRECATED_REMOVED)
-void mbedtls_sha512_starts(mbedtls_sha512_context *ctx,
-                           int is384)
+int mbedtls_sha512_starts(mbedtls_sha512_context *ctx,
+                          int is384)
 {
-    mbedtls_sha512_starts_ret(ctx, is384);
+    return mbedtls_sha512_starts_ret(ctx, is384);
 }
 #endif
 
@@ -122,14 +167,14 @@ void mbedtls_sha512_starts(mbedtls_sha512_context *ctx,
 int mbedtls_internal_sha512_process(mbedtls_sha512_context *ctx,
                                     const unsigned char data[128])
 {
-    return mbedtls_sha512_update_ret(ctx, data, 64);
+    return mbedtls_sha512_update_ret(ctx, data, 128);
 }
 
 #if !defined(MBEDTLS_DEPRECATED_REMOVED)
-void mbedtls_sha512_process(mbedtls_sha512_context *ctx,
-                            const unsigned char data[128])
+int mbedtls_sha512_process(mbedtls_sha512_context *ctx,
+                           const unsigned char data[128])
 {
-    mbedtls_internal_sha512_process(ctx, data);
+    return mbedtls_internal_sha512_process(ctx, data);
 }
 #endif
 #endif /* !MBEDTLS_SHA512_PROCESS_ALT */
@@ -140,25 +185,30 @@ void mbedtls_sha512_process(mbedtls_sha512_context *ctx,
 int mbedtls_sha512_update_ret(mbedtls_sha512_context *ctx, const unsigned char *input,
                               size_t ilen)
 {
-    if (ctx)
+    if ((mbedtls_sha512_ensure_ctx(ctx) == 0) && (input != RT_NULL || ilen == 0))
     {
         LOG_D("sha2 update ctx[%08x] len:%d in:%08x", *ctx, ilen, input);
-        rt_hwcrypto_hash_update(*ctx, input, ilen);
+        if (rt_hwcrypto_hash_update(*ctx, input, ilen) != RT_EOK)
+        {
+            LOG_E("sha2 update failed");
+            return MBEDTLS_ERR_SHA512_HW_ACCEL_FAILED;
+        }
     }
     else
     {
         LOG_E("sha2 update. but ctx is null");
+        return MBEDTLS_ERR_SHA512_HW_ACCEL_FAILED;
     }
 
     return 0;
 }
 
 #if !defined(MBEDTLS_DEPRECATED_REMOVED)
-void mbedtls_sha512_update(mbedtls_sha512_context *ctx,
-                           const unsigned char *input,
-                           size_t ilen)
+int mbedtls_sha512_update(mbedtls_sha512_context *ctx,
+                          const unsigned char *input,
+                          size_t ilen)
 {
-    mbedtls_sha512_update_ret(ctx, input, ilen);
+    return mbedtls_sha512_update_ret(ctx, input, ilen);
 }
 #endif
 
@@ -167,24 +217,29 @@ void mbedtls_sha512_update(mbedtls_sha512_context *ctx,
  */
 int mbedtls_sha512_finish_ret(mbedtls_sha512_context *ctx, unsigned char output[64])
 {
-    if (ctx)
+    if ((mbedtls_sha512_ensure_ctx(ctx) == 0) && (output != RT_NULL))
     {
         LOG_D("sha2 finish ctx[%08x] out:%08x", *ctx, output);
-        rt_hwcrypto_hash_finish(*ctx, output, 64);
+        if (rt_hwcrypto_hash_finish(*ctx, output, 64) != RT_EOK)
+        {
+            LOG_E("sha2 finish failed");
+            return MBEDTLS_ERR_SHA512_HW_ACCEL_FAILED;
+        }
     }
     else
     {
         LOG_E("sha2 finish. but ctx is null");
+        return MBEDTLS_ERR_SHA512_HW_ACCEL_FAILED;
     }
 
     return 0;
 }
 
 #if !defined(MBEDTLS_DEPRECATED_REMOVED)
-void mbedtls_sha512_finish(mbedtls_sha512_context *ctx,
-                           unsigned char output[64])
+int mbedtls_sha512_finish(mbedtls_sha512_context *ctx,
+                          unsigned char output[64])
 {
-    mbedtls_sha512_finish_ret(ctx, output);
+    return mbedtls_sha512_finish_ret(ctx, output);
 }
 #endif
 

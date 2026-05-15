@@ -1,8 +1,13 @@
 from building import *
 import rtconfig
-Import('RTT_ROOT')
+import shutil
 import os
+import sys
+import subprocess
+import importlib.util
 from string import Template
+
+Import('RTT_ROOT')
 
 # 1. Specific certificate file template
 cert_template = """
@@ -24,7 +29,7 @@ cert_template = """
  *
  */
 
-#include "mbedtls/certs.h"
+#include <stddef.h>
 
 const char mbedtls_root_certificate[] = 
 "-----BEGIN CERTIFICATE-----\\r\\n\" \\
@@ -69,12 +74,12 @@ ROOT_CA_FILE = []
 # 5. File that stores the contents of the certificate file
 output_cert_file = cwd + os.sep + (os.sep).join(['ports', 'src', 'tls_certificate.c'])
 
-if GetDepend(['PKG_USING_MBEDTLS_EXAMPLE']):
+if GetDepend('PKG_USING_MBEDTLS_EXAMPLE'):
     path = cwd + os.sep + (os.sep).join(['certs', 'default', 'DIGITAL_SIGNATURE_TRUST_ROOT_CA.cer'])
     if os.path.exists(path):
         ROOT_CA_FILE += [path]
 
-if GetDepend(['PKG_USING_MBEDTLS_USE_ALL_CERTS']):
+if GetDepend('PKG_USING_MBEDTLS_USE_ALL_CERTS'):
     file_list = os.listdir(certs_default_dir)
     if len(file_list):
         for i in range(0, len(file_list)):
@@ -82,7 +87,7 @@ if GetDepend(['PKG_USING_MBEDTLS_USE_ALL_CERTS']):
             if os.path.isfile(path):
                 ROOT_CA_FILE += [path]
 
-if GetDepend(['PKG_USING_MBEDTLS_USER_CERTS']):
+if GetDepend('PKG_USING_MBEDTLS_USER_CERTS'):
     file_list = os.listdir(certs_user_dir)
     if len(file_list):
         for i in range(0, len(file_list)):
@@ -91,21 +96,21 @@ if GetDepend(['PKG_USING_MBEDTLS_USER_CERTS']):
                 ROOT_CA_FILE += [path]
 
 
-KCONFIG_ROOT_CA_DICT = {'PKG_USING_MBEDTLS_THAWTE_ROOT_CA': 'THAWTE_ROOT_CA.cer', \
-                        'PKG_USING_MBEDTLS_VERSIGN_PBULIC_ROOT_CA': 'VERSIGN_PUBLIC_ROOT_CA.cer', \
-                        'PKG_USING_MBEDTLS_VERSIGN_UNIVERSAL_ROOT_CA': 'VERSIGN_UNIVERSAL_ROOT_CA.cer', \
-                        'PKG_USING_MBEDTLS_GEOTRUST_ROOT_CA': 'GEOTRUST_ROOT_CA.cer', \
-                        'PKG_USING_MBEDTLS_DIGICERT_ROOT_CA': 'DIGICERT_ROOT_CA.cer', \
-                        'PKG_USING_MBEDTLS_GODADDY_ROOT_CA': 'GODADDY_ROOT_CA.cer', 
-                        'PKG_USING_MBEDTLS_COMODOR_ROOT_CA': 'COMODOR_ROOT_CA.cer', \
-                        'PKG_USING_MBEDTLS_DST_ROOT_CA': 'DIGITAL_SIGNATURE_TRUST_ROOT_CA.cer', \
-                        'PKG_USING_MBEDTLS_CLOBALSIGN_ROOT_CA': 'CLOBALSIGN_ROOT_CA.cer', \
-                        'PKG_USING_MBEDTLS_ENTRUST_ROOT_CA': 'ENTRUST_ROOT_CA.cer', \
-                        'PKG_USING_MBEDTLS_CERTUM_TRUSTED_NETWORK_ROOT_CA': 'CERTUM_TRUSTED_NETWORK_ROOT_CA.cer', \
-                        'PKG_USING_MBEDTLS_AMAZON_ROOT_CA': 'AMAZON_ROOT_CA.cer'}
+KCONFIG_ROOT_CA_DICT = [('PKG_USING_MBEDTLS_THAWTE_ROOT_CA', 'THAWTE_ROOT_CA.cer'), \
+                        ('PKG_USING_MBEDTLS_VERSIGN_PBULIC_ROOT_CA', 'VERSIGN_PUBLIC_ROOT_CA.cer'), \
+                        ('PKG_USING_MBEDTLS_VERSIGN_UNIVERSAL_ROOT_CA', 'VERSIGN_UNIVERSAL_ROOT_CA.cer'), \
+                        ('PKG_USING_MBEDTLS_GEOTRUST_ROOT_CA', 'GEOTRUST_ROOT_CA.cer'), \
+                        ('PKG_USING_MBEDTLS_DIGICERT_ROOT_CA', 'DIGICERT_ROOT_CA.cer'), \
+                        ('PKG_USING_MBEDTLS_GODADDY_ROOT_CA', 'GODADDY_ROOT_CA.cer'), \
+                        ('PKG_USING_MBEDTLS_COMODOR_ROOT_CA', 'COMODOR_ROOT_CA.cer'), \
+                        ('PKG_USING_MBEDTLS_DST_ROOT_CA', 'DIGITAL_SIGNATURE_TRUST_ROOT_CA.cer'), \
+                        ('PKG_USING_MBEDTLS_CLOBALSIGN_ROOT_CA', 'CLOBALSIGN_ROOT_CA.cer'), \
+                        ('PKG_USING_MBEDTLS_ENTRUST_ROOT_CA', 'ENTRUST_ROOT_CA.cer'), \
+                        ('PKG_USING_MBEDTLS_CERTUM_TRUSTED_NETWORK_ROOT_CA', 'CERTUM_TRUSTED_NETWORK_ROOT_CA.cer'), \
+                        ('PKG_USING_MBEDTLS_AMAZON_ROOT_CA', 'AMAZON_ROOT_CA.cer')]
 
-for key, value in KCONFIG_ROOT_CA_DICT.items():
-    if GetDepend([key]):
+for PKG_key, value in KCONFIG_ROOT_CA_DICT:
+    if GetDepend(PKG_key):
         path = os.path.join(certs_default_dir, value)
         if os.path.exists(path) and os.path.isfile(path):
             ROOT_CA_FILE += [path]
@@ -119,21 +124,68 @@ if len(ROOT_CA_FILE) > 0:
     for i in range(0, len(ROOT_CA_FILE)):
         if os.path.isfile(ROOT_CA_FILE[i]):
             # READ CER FILE, copy to tls_certificate.c
-            with open(ROOT_CA_FILE[i], 'r') as ca:
-                # Pre-read, check first line
-                if not ca.readline().startswith("-----BEGIN CERTIFICATE"):
-                    print("[mbedtls] Warning: ", ROOT_CA_FILE[i], "is not CA file! Skipped!")
-                    continue
-                ca.seek(0)
-                for line in ca.readlines():
-                    file_content += '"' + line.strip() + '\\r\\n" \\\n'
+            with open(ROOT_CA_FILE[i], 'rb') as ca:
+                content = ca.read()
+
+            if not content.startswith(b"-----BEGIN CERTIFICATE"):
+                print("[mbedtls] Warning: ", ROOT_CA_FILE[i], "is not PEM CA file! Skipped!")
+                continue
+
+            text = content.decode('utf-8', errors='ignore')
+            for line in text.splitlines():
+                file_content += '"' + line.strip() + '\\r\\n" \\\n'
 
 # 7. Populate certificate template content
 cert_content = cert_subs.substitute(CERT_CONTENT = file_content)
 
 # 8. Write certificate template content to tls_certificate.c
-with open(output_cert_file, 'w') as f:
+with open(output_cert_file, 'w', encoding='utf-8') as f:
     f.write(cert_content)
+
+
+# Ensure mbedtls generated wrapper files exist before source collection.
+# If dependencies are missing, install from scripts/basic.requirements.txt first.
+def _ensure_driver_wrapper_generated(root_dir):
+    """Generate PSA driver wrapper sources required by mbedtls 3.x when missing."""
+    mbedtls_root = os.path.join(root_dir, 'mbedtls')
+    wrapper_h = os.path.join(mbedtls_root, 'library', 'psa_crypto_driver_wrappers.h')
+    wrapper_c = os.path.join(mbedtls_root, 'library', 'psa_crypto_driver_wrappers_no_static.c')
+
+    if os.path.exists(wrapper_h) and os.path.exists(wrapper_c):
+        return
+
+    requirements = os.path.join(mbedtls_root, 'scripts', 'basic.requirements.txt')
+    required_modules = ['jsonschema', 'jinja2']
+    missing_modules = [m for m in required_modules if importlib.util.find_spec(m) is None]
+
+    if missing_modules and os.path.exists(requirements):
+        print('[mbedtls] Installing Python dependencies from scripts/basic.requirements.txt...')
+        try:
+            subprocess.check_call([
+                sys.executable,
+                '-m',
+                'pip',
+                'install',
+                '--disable-pip-version-check',
+                '-r',
+                requirements,
+            ])
+        except Exception as err:
+            print('[mbedtls] Error: failed to install Python dependencies:', err)
+            Exit(1)
+
+    script = os.path.join(mbedtls_root, 'scripts', 'generate_driver_wrappers.py')
+    cmd = [sys.executable, script]
+
+    print('[mbedtls] Generating PSA driver wrapper files...')
+    try:
+        subprocess.check_call(cmd, cwd=mbedtls_root)
+    except Exception as err:
+        print('[mbedtls] Error: failed to generate PSA driver wrapper files:', err)
+        Exit(1)
+
+
+_ensure_driver_wrapper_generated(cwd)
 
 
 src = Glob('mbedtls/library/*.c')
@@ -141,7 +193,7 @@ SrcRemove(src, 'mbedtls/library/net_sockets.c')
 
 src += Glob('ports/src/*.c')
 
-if GetDepend(['PKG_USING_MBEDTLS_EXAMPLE']):
+if GetDepend('PKG_USING_MBEDTLS_EXAMPLE'):
     src += Glob('samples/*.c')
 
 CPPPATH = [
@@ -150,14 +202,7 @@ cwd + '/mbedtls/library',
 cwd + '/ports/inc',
 ]
 
-if rtconfig.CROSS_TOOL == 'gcc' or rtconfig.CROSS_TOOL == 'keil' or rtconfig.CROSS_TOOL == 'iar':
-    import shutil
-    cp_src = cwd + '/ports/inc/tls_config.h'
-    cp_dst = cwd + '/mbedtls/include/mbedtls/config.h'
-    shutil.copyfile(cp_src, cp_dst)
-    CPPDEFINES = []
-else:
-    CPPDEFINES = []
+CPPDEFINES = ['MBEDTLS_CONFIG_FILE=<tls_config.h>']
 
 group = DefineGroup('mbedtls', src, depend = ['PKG_USING_MBEDTLS'], CPPPATH = CPPPATH, CPPDEFINES = CPPDEFINES)
 

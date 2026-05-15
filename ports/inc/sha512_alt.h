@@ -23,12 +23,9 @@
  */
 #ifndef MBEDTLS_SHA512_ALT_H
 #define MBEDTLS_SHA512_ALT_H
+#include "mbedtls/private_access.h"
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "mbedtls/build_info.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -127,9 +124,9 @@ int mbedtls_sha512_finish_ret( mbedtls_sha512_context *ctx,
 int mbedtls_internal_sha512_process( mbedtls_sha512_context *ctx,
                                      const unsigned char data[128] );
 #if !defined(MBEDTLS_DEPRECATED_REMOVED)
-#if defined(MBEDTLS_DEPRECATED_WARNING)
+#if !defined(MBEDTLS_DEPRECATED) && defined(MBEDTLS_DEPRECATED_WARNING)
 #define MBEDTLS_DEPRECATED      __attribute__((deprecated))
-#else
+#elif !defined(MBEDTLS_DEPRECATED)
 #define MBEDTLS_DEPRECATED
 #endif
 /**
@@ -143,8 +140,8 @@ int mbedtls_internal_sha512_process( mbedtls_sha512_context *ctx,
  *                 <ul><li>0: Use SHA-512.</li>
  *                 <li>1: Use SHA-384.</li></ul>
  */
-MBEDTLS_DEPRECATED void mbedtls_sha512_starts( mbedtls_sha512_context *ctx,
-                                               int is384 );
+MBEDTLS_DEPRECATED int mbedtls_sha512_starts( mbedtls_sha512_context *ctx,
+                                              int is384 );
 
 /**
  * \brief          This function feeds an input buffer into an ongoing
@@ -156,9 +153,9 @@ MBEDTLS_DEPRECATED void mbedtls_sha512_starts( mbedtls_sha512_context *ctx,
  * \param input    The buffer holding the data.
  * \param ilen     The length of the input data.
  */
-MBEDTLS_DEPRECATED void mbedtls_sha512_update( mbedtls_sha512_context *ctx,
-                                               const unsigned char *input,
-                                               size_t ilen );
+MBEDTLS_DEPRECATED int mbedtls_sha512_update( mbedtls_sha512_context *ctx,
+                                              const unsigned char *input,
+                                              size_t ilen );
 
 /**
  * \brief          This function finishes the SHA-512 operation, and writes
@@ -169,8 +166,8 @@ MBEDTLS_DEPRECATED void mbedtls_sha512_update( mbedtls_sha512_context *ctx,
  * \param ctx      The SHA-512 context.
  * \param output   The SHA-384 or SHA-512 checksum result.
  */
-MBEDTLS_DEPRECATED void mbedtls_sha512_finish( mbedtls_sha512_context *ctx,
-                                               unsigned char output[64] );
+MBEDTLS_DEPRECATED int mbedtls_sha512_finish( mbedtls_sha512_context *ctx,
+                                              unsigned char output[64] );
 
 /**
  * \brief          This function processes a single data block within
@@ -182,11 +179,9 @@ MBEDTLS_DEPRECATED void mbedtls_sha512_finish( mbedtls_sha512_context *ctx,
  * \param ctx      The SHA-512 context.
  * \param data     The buffer holding one block of data.
  */
-MBEDTLS_DEPRECATED void mbedtls_sha512_process(
-                                            mbedtls_sha512_context *ctx,
-                                            const unsigned char data[128] );
-
-#undef MBEDTLS_DEPRECATED
+MBEDTLS_DEPRECATED int mbedtls_sha512_process(
+                                           mbedtls_sha512_context *ctx,
+                                           const unsigned char data[128] );
 #endif /* !MBEDTLS_DEPRECATED_REMOVED */
 
 #ifdef __cplusplus
