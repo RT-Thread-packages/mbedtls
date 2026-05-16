@@ -206,4 +206,29 @@ CPPDEFINES = ['MBEDTLS_CONFIG_FILE=<tls_config.h>']
 
 group = DefineGroup('mbedtls', src, depend = ['PKG_USING_MBEDTLS'], CPPPATH = CPPPATH, CPPDEFINES = CPPDEFINES)
 
+# MBEDTLS_CONFIG_FILE is injected by macro and later consumed through
+# '#include MBEDTLS_CONFIG_FILE' in mbedtls headers. This macro-based include
+# chain (tls_config.h -> rtconfig.h / .config driven macros) can be missed by
+# SCons dependency scanning in incremental builds, causing stale objects and
+# link-time symbol conflicts. Add explicit object dependencies below so config
+# changes always trigger mbedtls recompilation.
+bsp_root = Env.get('BSP_ROOT')
+
+# If BSP_ROOT is available, bind object dependencies to project config files.
+if bsp_root:
+    config_deps = [
+        File('ports/inc/tls_config.h'),
+        File(os.path.join(str(bsp_root), 'rtconfig.h')),
+        File(os.path.join(str(bsp_root), '.config')),
+    ]
+
+    # DefineGroup() returns source nodes in this framework; bind dependencies to
+    # object targets to ensure config updates trigger recompilation.
+    mbedtls_objs = Env.Object(group)
+    for dep in config_deps:
+        if dep.exists():
+            Depends(mbedtls_objs, dep)
+else:
+    print('[mbedtls] BSP_ROOT is not available, skip config dependency binding.')
+
 Return('group')
