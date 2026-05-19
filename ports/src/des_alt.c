@@ -25,7 +25,7 @@
  *  http://csrc.nist.gov/publications/fips/fips46-3/fips46-3.pdf
  */
 
-#include "common.h"
+#include "../../mbedtls/library/common.h"
 
 #if defined(MBEDTLS_DES_C)
 

@@ -17,7 +17,7 @@
  *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
-#include "common.h"
+#include "../../mbedtls/library/common.h"
 
 #include <sys/types.h>
 #include <stdlib.h>

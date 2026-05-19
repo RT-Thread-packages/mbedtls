@@ -20,7 +20,7 @@
  */
 
 #include "rtthread.h"
-#include "common.h"
+#include "../../mbedtls/library/common.h"
 
 #if defined(MBEDTLS_SELF_TEST) && defined(MBEDTLS_PLATFORM_C)
 #include "mbedtls/platform.h"

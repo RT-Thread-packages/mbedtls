@@ -24,7 +24,7 @@
  *  http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf
  */
 
-#include "common.h"
+#include "../../mbedtls/library/common.h"
 
 #if defined(MBEDTLS_SHA512_C)
 

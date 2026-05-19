@@ -27,7 +27,7 @@
 #include "tls_certificate.h"
 #endif
 
-#include "common.h"
+#include "../../mbedtls/library/common.h"
 
 #if defined(MBEDTLS_DEBUG_C)
 #define DEBUG_LEVEL (2)

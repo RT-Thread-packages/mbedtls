@@ -37,7 +37,7 @@
  *
  */
 
-#include "common.h"
+#include "../../mbedtls/library/common.h"
 
 #if defined(MBEDTLS_RSA_C)
 
