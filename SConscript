@@ -202,7 +202,7 @@ cwd + '/mbedtls/library',
 cwd + '/ports/inc',
 ]
 
-CPPDEFINES = ['MBEDTLS_CONFIG_FILE=<tls_config.h>']
+CPPDEFINES = ['MBEDTLS_CONFIG_FILE=\\"tls_config.h\\"']
 
 group = DefineGroup('mbedtls', src, depend = ['PKG_USING_MBEDTLS'], CPPPATH = CPPPATH, CPPDEFINES = CPPDEFINES)
 
