@@ -9,6 +9,26 @@ from string import Template
 
 Import('RTT_ROOT')
 
+
+
+# Check if the certificate path is valid
+def check_cert_path(path):
+    
+    ret = True
+    
+    if not os.path.exists(path):
+        print(f"[mbedtls] Certificate path '{path}' does not exist.")
+        ret = False
+    if not os.path.isfile(path):
+        print(f"[mbedtls] Certificate path '{path}' is not a file.")
+        ret = False
+    if os.path.splitext(path)[1].lower() not in ('.cer', '.pem', '.crt'):
+        print(f"[mbedtls] Certificate file '{path}' does not have a valid extension (.cer, .pem, .crt).")
+        ret = False
+
+    return ret
+
+
 # 1. Specific certificate file template
 cert_template = """
 /*
@@ -84,16 +104,20 @@ if GetDepend('PKG_USING_MBEDTLS_USE_ALL_CERTS'):
     if len(file_list):
         for i in range(0, len(file_list)):
             path = os.path.join(certs_default_dir, file_list[i])
-            if os.path.isfile(path):
+            if check_cert_path(path=path):
                 ROOT_CA_FILE += [path]
+            else:
+                continue
 
 if GetDepend('PKG_USING_MBEDTLS_USER_CERTS'):
     file_list = os.listdir(certs_user_dir)
     if len(file_list):
         for i in range(0, len(file_list)):
             path = os.path.join(certs_user_dir, file_list[i])
-            if os.path.isfile(path):
+            if check_cert_path(path=path):
                 ROOT_CA_FILE += [path]
+            else:
+                continue
 
 
 KCONFIG_ROOT_CA_DICT = [('PKG_USING_MBEDTLS_THAWTE_ROOT_CA', 'THAWTE_ROOT_CA.cer'), \
@@ -112,8 +136,10 @@ KCONFIG_ROOT_CA_DICT = [('PKG_USING_MBEDTLS_THAWTE_ROOT_CA', 'THAWTE_ROOT_CA.cer
 for PKG_key, value in KCONFIG_ROOT_CA_DICT:
     if GetDepend(PKG_key):
         path = os.path.join(certs_default_dir, value)
-        if os.path.exists(path) and os.path.isfile(path):
+        if check_cert_path(path=path):
             ROOT_CA_FILE += [path]
+        else:
+            continue
 
 ROOT_CA_FILE = list(set(ROOT_CA_FILE))
 
